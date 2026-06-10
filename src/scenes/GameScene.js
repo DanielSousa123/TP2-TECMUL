@@ -6,10 +6,16 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('fundo', 'assets/images/background2.jpg');
+        if (!this.textures.exists('fundo')) {
+            this.load.image('fundo', 'assets/images/background2.jpg');
+        }
+        if (!this.textures.exists('player')) {
+            this.load.image('player', 'assets/images/player.png');
+        }
     }
 
     create() {
+        this._isTransitioning = false;
         this.velocidadeJogo = 300;
         this.velocidadeMaxima = 800;
         this.aceleracao = 0.05;
@@ -29,12 +35,8 @@ export default class GameScene extends Phaser.Scene {
         this.chao = this.add.tileSprite(640, 675, 1280, 90, 'texturaChao');
         this.physics.add.existing(this.chao, true);
 
-        const playerCanvas = this.make.graphics({ x: 0, y: 0, add: false });
-        playerCanvas.fillStyle(0x00aaff);
-        playerCanvas.fillRect(0, 0, 50, 50);
-        playerCanvas.generateTexture('texturaPlayer', 50, 50);
-
-        this.player = this.physics.add.sprite(100, 200, 'texturaPlayer');
+        this.player = this.physics.add.sprite(100, 200, 'player');
+        this.player.setScale(0.05);
         this.player.setCollideWorldBounds(true);
         this.physics.add.collider(this.player, this.chao);
 

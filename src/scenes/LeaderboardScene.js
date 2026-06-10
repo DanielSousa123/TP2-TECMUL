@@ -10,6 +10,7 @@ export default class LeaderboardScene extends Phaser.Scene {
     }
 
     create() {
+        this._isTransitioning = false;
         this.background = this.add.tileSprite(640, 360, 1280, 720, 'fundo');
         this.background.tileScaleX = 1280 / 1416;
         this.background.tileScaleY = 720 / 980;
@@ -38,29 +39,21 @@ export default class LeaderboardScene extends Phaser.Scene {
 
         const close = this.add.text(640, 560, 'Fechar', { fontSize: '18px', fill: '#fff', backgroundColor: '#8b4513' })
             .setOrigin(0.5).setInteractive({ useHandCursor: true });
-        close.on('pointerdown', () => this.transitionBack());
+        close.on('pointerdown', () => { if (!this._isTransitioning) this.transitionBack(); });
 
         this.cameras.main.fadeIn(300);
     }
 
     transitionBack() {
-        const dur = 300;
-        this.sound.sounds.forEach(s => {
-            try {
-                if (!s) return;
-                if (s.isPlaying) {
-                    this.tweens.killTweensOf(s);
-                    this.tweens.add({ targets: s, volume: 0, duration: dur, onComplete: () => { try { s.stop(); } catch(e){} } });
-                }
-            } catch (e) {}
-        });
+        if (this._isTransitioning) return;
+        this._isTransitioning = true;
 
+        const dur = 300;
+        
+        
         this.cameras.main.fadeOut(dur);
-        let fired = false;
         this.cameras.main.once('camerafadeoutcomplete', () => {
-            fired = true;
             this.scene.start('MenuScene');
         });
-        this.time.delayedCall(dur + 200, () => { if (!fired) this.scene.start('MenuScene'); });
     }
 }
