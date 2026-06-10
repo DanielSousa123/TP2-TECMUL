@@ -1,18 +1,25 @@
 import Phaser from 'phaser';
+import MenuScene from './scenes/MenuScene.js';
 import GameScene from './scenes/GameScene.js';
+import GameOverScene from './scenes/GameOverScene.js';
+import SettingsScene from './scenes/SettingsScene.js';
+import LeaderboardScene from './scenes/LeaderboardScene.js';
 
 const config = {
     type: Phaser.AUTO,
     width: 1280,
     height: 720,
     physics: {
-        default: 'arcade', // Sistema de física Arcade exigido
+        default: 'arcade',
         arcade: {
-            gravity: { y: 300 }, // Gravidade para empurrar as coisas para baixo
-            debug: false         // Muda para true para ver as caixas de colisão
+            gravity: { y: 300 },
+            debug: false
         }
     },
-    scene: [GameScene] // Registo da cena que criámos acima
+    dom: {
+        createContainer: true
+    },
+    scene: [MenuScene, GameScene, GameOverScene, SettingsScene, LeaderboardScene]
 };
 
 const game = new Phaser.Game(config);
