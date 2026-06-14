@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { t } from '../traducao.js';
 
 export default class GameOverScene extends Phaser.Scene {
     constructor() {
@@ -7,6 +8,7 @@ export default class GameOverScene extends Phaser.Scene {
 
     init(data) {
         this.finalScore = data.score || 0;
+        this.finalCoins = data.coins || 0;
     }
 
     preload() {
@@ -22,27 +24,32 @@ export default class GameOverScene extends Phaser.Scene {
         this.background.tileScaleY = 720 / 980;
         this.add.rectangle(640, 360, 1280, 720, 0x0a0a0a, 0.85);
 
+        const isMuted = localStorage.getItem('tp2_muted') === 'true';
+        const volume = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
+        const actualVolume = isMuted ? 0 : volume;
+
         this.sound.stopAll();
         this.gameOverMusic = this.sound.get('gameOverMusic');
         if (!this.gameOverMusic) {
             this.gameOverMusic = this.sound.add('gameOverMusic', { loop: true, volume: 0 });
             this.gameOverMusic.play();
-            this.tweens.add({ targets: this.gameOverMusic, volume: 0.5, duration: 700 });
+            this.tweens.add({ targets: this.gameOverMusic, volume: actualVolume, duration: 700 });
         } else if (!this.gameOverMusic.isPlaying) {
             this.gameOverMusic.play();
-            this.tweens.add({ targets: this.gameOverMusic, volume: 0.5, duration: 700 });
+            this.tweens.add({ targets: this.gameOverMusic, volume: actualVolume, duration: 700 });
         }
 
         this.cameras.main.fadeIn(400);
 
-        this.add.text(640, 140, 'GAME OVER', { fontSize: '88px', fontStyle: 'bold', fill: '#d4af37', stroke: '#654321', strokeThickness: 8 }).setOrigin(0.5);
-        this.add.text(640, 230, `Pontuação: ${this.finalScore}`, { fontSize: '40px', fill: '#f5deb3', stroke: '#8b4513', strokeThickness: 4 }).setOrigin(0.5);
+        this.add.text(640, 135, t('gameOver'), { fontSize: '88px', fontStyle: 'bold', fill: '#d4af37', stroke: '#654321', strokeThickness: 8 }).setOrigin(0.5);
+        this.add.text(640, 230, `${t('finalScore')}: ${this.finalScore}`, { fontSize: '40px', fill: '#f5deb3', stroke: '#8b4513', strokeThickness: 4 }).setOrigin(0.5);
+        this.add.text(640, 285, `${t('coins')}: ${this.finalCoins}`, { fontSize: '32px', fill: '#ffd966', stroke: '#8b4513', strokeThickness: 3 }).setOrigin(0.5);
 
-        this.saveScore(this.finalScore);
+        this.saveScore(this.finalScore, this.finalCoins);
 
         const makeGameOverButton = (x, label, color, cb) => {
             const btn = this.add.rectangle(x, 420, 280, 64, color).setInteractive({ useHandCursor: true });
-            const txt = this.add.text(x, 420, label, { fontSize: '22px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+            this.add.text(x, 420, label, { fontSize: '22px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
 
             const darker = (c, amt) => {
                 const r = Math.max(0, ((c >> 16) & 0xff) - amt);
@@ -69,11 +76,11 @@ export default class GameOverScene extends Phaser.Scene {
             return btn;
         };
 
-        makeGameOverButton(480, 'TENTAR DE NOVO', 0xb8860b, () => { this.transitionTo('GameScene'); });
-        makeGameOverButton(800, 'MENU PRINCIPAL', 0x8b6914, () => { this.transitionTo('MenuScene'); });
+        makeGameOverButton(480, t('tryAgain'), 0xb8860b, () => { this.transitionTo('GameScene'); });
+        makeGameOverButton(800, t('mainMenu'), 0x8b6914, () => { this.transitionTo('MenuScene'); });
 
-        this.input.keyboard.once('keydown-SPACE', () => { if (!this._isTransitioning) { this.transitionTo('GameScene'); } });
-        this.input.keyboard.once('keydown-ESC',   () => { if (!this._isTransitioning) { this.transitionTo('MenuScene'); } });
+        this.input.keyboard.once('keydown-SPACE', () => { if (!this._isTransitioning) this.transitionTo('GameScene'); });
+        this.input.keyboard.once('keydown-ESC', () => { if (!this._isTransitioning) this.transitionTo('MenuScene'); });
     }
 
     transitionTo(targetScene, data) {
@@ -81,11 +88,9 @@ export default class GameOverScene extends Phaser.Scene {
         this._isTransitioning = true;
 
         const dur = 400;
-        
         this.sound.stopAll();
-        
         this.cameras.main.fadeOut(dur, 0, 0, 0);
-        
+
         let transitionComplete = false;
         this.cameras.main.once('camerafadeoutcomplete', () => {
             if (!transitionComplete) {
@@ -93,7 +98,7 @@ export default class GameOverScene extends Phaser.Scene {
                 this.scene.start(targetScene, data);
             }
         });
-        
+
         this.time.delayedCall(dur + 500, () => {
             if (!transitionComplete) {
                 transitionComplete = true;
@@ -102,31 +107,26 @@ export default class GameOverScene extends Phaser.Scene {
         });
     }
 
-    saveScore(score) {
+    saveScore(score, coins) {
         try {
-            const name = localStorage.getItem('tp2_player_name') || 'Player';
+            const name = localStorage.getItem('tp2_player_name') || t('player');
             const key = 'tp2_leaderboard';
             const raw = localStorage.getItem(key);
             const arr = raw ? JSON.parse(raw) : [];
-            
-
             const existingIndex = arr.findIndex(entry => entry.name === name);
-            
+
             if (existingIndex !== -1) {
-    
+                arr[existingIndex].coins = coins;
                 if (score > arr[existingIndex].score) {
                     arr[existingIndex].score = score;
                     arr[existingIndex].date = Date.now();
                 }
             } else {
-                
-                arr.push({ name, score, date: Date.now() });
+                arr.push({ name, score, coins, date: Date.now() });
             }
-            
-            arr.sort((a,b) => b.score - a.score);
-            localStorage.setItem(key, JSON.stringify(arr.slice(0, 50)));
-        } catch (e) {
-        }
-    }
 
+            arr.sort((a, b) => b.score - a.score);
+            localStorage.setItem(key, JSON.stringify(arr.slice(0, 50)));
+        } catch (e) {}
+    }
 }
