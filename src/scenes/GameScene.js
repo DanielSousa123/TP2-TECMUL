@@ -49,12 +49,8 @@ export default class GameScene extends Phaser.Scene {
         obstaculoCanvas.fillRect(0, 0, 25, 40);
         obstaculoCanvas.generateTexture('texturaObstaculo', 25, 40);
 
-        this.geradorObstaculos = this.time.addEvent({
-            delay: 1500,
-            callback: this.criarObstaculo,
-            callbackScope: this,
-            loop: true
-        });
+        // Schedule first obstacle with random delay
+        this.agendarProximoObstaculo();
 
         this.physics.add.collider(this.player, this.obstaculos, this.gameOver, null, this);
 
@@ -88,11 +84,23 @@ export default class GameScene extends Phaser.Scene {
         const obstaculo = this.obstaculos.create(1350, 610, 'texturaObstaculo');
         obstaculo.body.setAllowGravity(false);
         obstaculo.body.setImmovable(true);
+
+        // Schedule next obstacle with random delay
+        this.agendarProximoObstaculo();
+    }
+
+    agendarProximoObstaculo() {
+        // Calculate random delay based on game speed
+        // Faster game = shorter delay, but always enough space to jump
+        const minDelay = 1000;
+        const maxDelay = 3000;
+        const randomDelay = Phaser.Math.Between(minDelay, maxDelay);
+
+        this.time.delayedCall(randomDelay, this.criarObstaculo, [], this);
     }
 
     gameOver() {
         this.physics.pause();
-        this.geradorObstaculos.destroy();
 
         this.player.setTint(0xff0000);
 
