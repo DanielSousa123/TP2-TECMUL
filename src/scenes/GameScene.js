@@ -26,6 +26,16 @@ export default class GameScene extends Phaser.Scene {
         if (!this.textures.exists('cactus')) {
             this.load.image('cactus', 'assets/images/cactus.png');
         }
+        if (!this.textures.exists('playerSlide')) {
+            this.load.image('playerSlide', 'assets/images/Sprite-slide.png');
+        }
+        
+        for (let i = 1; i <= 7; i++) {
+            if (!this.textures.exists(`bird${i}`)) {
+                this.load.image(`bird${i}`, `assets/bird flying/${i}.png`);
+            }
+        }
+
         this.load.audio('gameMusic', 'assets/music/gamemusic.mp3');
         this.load.spritesheet('coin', 'assets/images/coin.png', {
             frameWidth: 16,
@@ -34,7 +44,7 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
-
+        // Create Coin Animation
         this.anims.create({
             key: 'coinSpin',
             frames: this.anims.generateFrameNumbers('coin'),
@@ -42,6 +52,7 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Create Player Run Animation
         this.anims.create({
             key: 'playerRun',
             frames: this.anims.generateFrameNumbers('player'),
@@ -49,7 +60,20 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // Create Bird Flying Animation
+        const birdFrames = [];
+        for (let i = 1; i <= 7; i++) {
+            birdFrames.push({ key: `bird${i}` });
+        }
+        this.anims.create({
+            key: 'birdFly',
+            frames: birdFrames,
+            frameRate: 12,
+            repeat: -1
+        });
+
         this._isTransitioning = false;
+        this.isSliding = false;
         this._isPaused = false;
         this.time.paused = false;
         this.physics.resume();
@@ -121,6 +145,44 @@ export default class GameScene extends Phaser.Scene {
         this._buildPauseOverlay();
 
         this.cameras.main.fadeIn(400);
+
+        
+    }
+
+    startSlide() {
+    if (this.isSliding) return;
+
+    const onGround =
+        this.player.body.touching.down ||
+        this.player.body.blocked.down;
+
+    if (!onGround) return;
+
+    this.isSliding = true;
+    this._playerState = 'slide';
+
+    this.player.stop();
+    this.player.setTexture('playerSlide');
+
+    this.player.body.setSize(60, 40);
+    this.player.body.setOffset(18, 50);
+
+    this.time.delayedCall(600, () => {
+        this.endSlide();
+    });
+    }
+
+    endSlide() {
+        if (!this.isSliding) return;
+
+        this.isSliding = false;
+        this.player.body.setSize(60, 80);
+        this.player.body.setOffset(18, 12);
+
+        this.player.setTexture('player');
+        this.player.play('playerRun', true);
+
+        this._playerState = 'run';
     }
 
     // ── Build the pause overlay objects (depth 20) ───────────────────────
@@ -345,13 +407,29 @@ export default class GameScene extends Phaser.Scene {
 
     criarObstaculo() {
         if (this._isTransitioning) return;
-        const CACTUS_SCALE = 0.080;
-        const obstaculo = this.obstaculos.create(1350, 600, 'cactus');
-        obstaculo.setScale(CACTUS_SCALE);
-        obstaculo.body.setAllowGravity(false);
-        obstaculo.body.setImmovable(true);
-        obstaculo.body.setSize(420, 820);
-        obstaculo.body.setOffset(258, 105);
+        const obstacleType = Phaser.Math.Between(0, 1) === 0 ? 'cactus' : 'bird';
+
+        if (obstacleType === 'cactus') {
+            const CACTUS_SCALE = 0.080;
+            const obstaculo = this.obstaculos.create(1350, 600, 'cactus');
+            obstaculo.setScale(CACTUS_SCALE);
+            obstaculo.body.setAllowGravity(false);
+            obstaculo.body.setImmovable(true);
+            obstaculo.body.setSize(420, 820);
+            obstaculo.body.setOffset(258, 105);
+        } else {
+            
+            const BIRD_Y = Phaser.Math.Between(560, 570); // High enough to require sliding under
+            const obstaculo = this.obstaculos.create(1350, BIRD_Y, 'bird1');
+            obstaculo.setScale(1.5);
+            obstaculo.play('birdFly');
+            obstaculo.body.setAllowGravity(false);
+            obstaculo.body.setImmovable(true);
+            
+        
+            obstaculo.body.setSize(32, 24);
+            obstaculo.body.setOffset(0, 4);
+        }
 
         this.agendarProximoObstaculo();
     }
