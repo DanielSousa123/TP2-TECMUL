@@ -36,7 +36,6 @@ export default class MenuScene extends Phaser.Scene {
         this.add.rectangle(640, 360, 1280, 720, 0x2a1a0a, 0.6);
 
         const cx = 640;
-        this.add.text(cx, 80, '* + *', { fontSize: '32px', fill: '#d4af37' }).setOrigin(0.5);
         this.add.text(cx, 140, 'DAMNATION', {
             fontSize: '70px',
             fontStyle: 'bold',
@@ -82,30 +81,14 @@ export default class MenuScene extends Phaser.Scene {
         };
 
         makeLeftButton(playY, t('start'), 0xb8860b, () => { if (!this._isTransitioning) this.transitionTo('GameScene'); });
-        makeLeftButton(playY + 96, t('settings'), 0x8b6914, () => { if (!this._isTransitioning) this.transitionTo('SettingsScene'); });
-        makeLeftButton(playY + 192, t('rules'), 0x8b6914, () => this.showHowTo());
-
-        const ranking = this.add.text(1190, 40, t('ranking'), { fontSize: '20px', fill: '#d4af37' })
-            .setOrigin(0.5)
-            .setInteractive({ useHandCursor: true });
-        ranking.on('pointerover', () => {
-            if (ranking._isHover) return;
-            ranking._isHover = true;
-            this.tweens.killTweensOf(ranking);
-            this.tweens.add({ targets: ranking, scale: 1.15, duration: 120 });
-            try { this.sound.play('hoverSfx', { volume: 0.6 }); } catch (e) {}
-        });
-        ranking.on('pointerout', () => {
-            ranking._isHover = false;
-            this.tweens.killTweensOf(ranking);
-            this.tweens.add({ targets: ranking, scale: 1.0, duration: 120 });
-        });
-        ranking.on('pointerdown', () => { if (!this._isTransitioning) this.transitionTo('LeaderboardScene'); });
+        makeLeftButton(playY + 96, t('shop'), 0x8b6914, () => { if (!this._isTransitioning) this.transitionTo('ShopScene'); });
+        makeLeftButton(playY + 192, t('settings'), 0x8b6914, () => { if (!this._isTransitioning) this.transitionTo('SettingsScene'); });
+        makeLeftButton(playY + 288, t('rules'), 0x8b6914, () => this.showHowTo());
 
         this.input.keyboard.on('keydown-SPACE', () => { if (!this._isTransitioning) this.transitionTo('GameScene'); });
         this.input.keyboard.on('keydown-ENTER', () => { if (!this._isTransitioning) this.transitionTo('GameScene'); });
 
-        this.createNameInput();
+        this.updateStatsDisplay();
     }
 
     update() {
@@ -115,7 +98,6 @@ export default class MenuScene extends Phaser.Scene {
     transitionTo(targetScene, data) {
         if (this._isTransitioning) return;
         this._isTransitioning = true;
-        this.cleanupNameInput();
 
         const dur = 400;
         if (targetScene === 'GameScene' || targetScene === 'GameOverScene') {
@@ -148,66 +130,20 @@ export default class MenuScene extends Phaser.Scene {
         alert(t('howTo'));
     }
 
-    createNameInput() {
-        const savedName = localStorage.getItem('tp2_player_name') || '';
-        const container = document.createElement('div');
-        container.id = 'tp2-menu-name-input';
-        Object.assign(container.style, {
-            position: 'fixed',
-            left: '50%',
-            top: '85%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 9999,
-            background: 'rgba(0,0,0,0.7)',
-            padding: '12px',
-            borderRadius: '8px',
-            display: 'flex',
-            gap: '10px',
-            alignItems: 'center'
-        });
+    updateStatsDisplay() {
+        const highestScore = localStorage.getItem('tp2_highest_score') || 0;
+        const totalCoins = localStorage.getItem('tp2_total_coins') || 0;
 
-        const label = document.createElement('span');
-        label.textContent = t('name');
-        Object.assign(label.style, { color: '#d4af37', fontSize: '16px', fontWeight: 'bold' });
-
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.placeholder = t('namePlaceholder');
-        input.maxLength = 12;
-        input.value = savedName;
-        Object.assign(input.style, {
-            padding: '8px 10px',
-            fontSize: '14px',
-            borderRadius: '6px',
-            border: 'none',
-            outline: 'none',
-            width: '150px'
-        });
-
-        container.appendChild(label);
-        container.appendChild(input);
-        document.body.appendChild(container);
-
-        this._nameInputCleanup = () => {
-            const el = document.getElementById('tp2-menu-name-input');
-            if (el) el.remove();
-            const name = input.value.trim() || t('player');
-            localStorage.setItem('tp2_player_name', name.slice(0, 12));
-        };
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                input.blur();
-            }
-        });
-    }
-
-    cleanupNameInput() {
-        if (this._nameInputCleanup) {
-            try {
-                this._nameInputCleanup();
-            } catch (e) {}
-            this._nameInputCleanup = null;
+        // Remove existing stats display if any
+        if (this._statsDisplay) {
+            this._statsDisplay.destroy();
         }
+
+        this._statsDisplay = this.add.text(640, 240, `${t('highestScore')}: ${highestScore} | ${t('coins')}: ${totalCoins}`, {
+            fontSize: '20px',
+            fill: '#ffd966',
+            stroke: '#4a260d',
+            strokeThickness: 3
+        }).setOrigin(0.5).setDepth(10);
     }
 }

@@ -3,7 +3,7 @@ import MenuScene from './scenes/MenuScene.js';
 import GameScene from './scenes/GameScene.js';
 import GameOverScene from './scenes/GameOverScene.js';
 import SettingsScene from './scenes/SettingsScene.js';
-import LeaderboardScene from './scenes/LeaderboardScene.js';
+import ShopScene from './scenes/ShopScene.js';
 
 const config = {
     type: Phaser.AUTO,
@@ -19,7 +19,7 @@ const config = {
     dom: {
         createContainer: true
     },
-    scene: [MenuScene, GameScene, GameOverScene, SettingsScene, LeaderboardScene]
+    scene: [MenuScene, GameScene, GameOverScene, SettingsScene, ShopScene]
 };
 
 const game = new Phaser.Game(config);

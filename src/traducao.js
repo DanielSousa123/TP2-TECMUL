@@ -27,7 +27,9 @@ const dictionaries = {
         position: 'POS',
         playerColumn: 'NOME',
         scoreColumn: 'PONTOS',
-        coinsColumn: 'MOEDAS'
+        coinsColumn: 'MOEDAS',
+        highestScore: 'Recorde',
+        shop: 'LOJA'
     },
     en: {
         start: 'START',
@@ -55,7 +57,9 @@ const dictionaries = {
         position: 'POS',
         playerColumn: 'NAME',
         scoreColumn: 'SCORE',
-        coinsColumn: 'COINS'
+        coinsColumn: 'COINS',
+        highestScore: 'Highest Score',
+        shop: 'SHOP'
     }
 };
 

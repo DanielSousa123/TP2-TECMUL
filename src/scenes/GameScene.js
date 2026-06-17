@@ -16,6 +16,9 @@ export default class GameScene extends Phaser.Scene {
         if (!this.textures.exists('cactus')) {
             this.load.image('cactus', 'assets/images/cactus.png');
         }
+        if (!this.textures.exists('texturaChao')) {
+            this.load.image('texturaChao', 'assets/images/ground_Sprite.png');
+        }
         this.load.audio('gameMusic', '/assets/music/gamemusic.mp3');
         this.load.spritesheet('coin', 'assets/images/coin.png', {
             frameWidth: 16,
@@ -51,22 +54,15 @@ export default class GameScene extends Phaser.Scene {
         this.coinText = this.add.text(640, 48, `${t('coins')}: 0`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5, 0);
         this.startGameMusic();
 
-        if (!this.textures.exists('texturaChao')) {
-            const chaoCanvas = this.make.graphics({ x: 0, y: 0, add: false });
-            chaoCanvas.fillStyle(0xd9a441);
-            chaoCanvas.fillRect(0, 0, 64, 32);
-            chaoCanvas.fillStyle(0xc58b32);
-            chaoCanvas.fillRect(0, 0, 64, 5);
-            chaoCanvas.fillStyle(0xe8bf68, 0.7);
-            chaoCanvas.fillEllipse(14, 15, 24, 5);
-            chaoCanvas.fillEllipse(48, 23, 30, 4);
-            chaoCanvas.fillStyle(0x9b6626, 0.8);
-            chaoCanvas.fillCircle(27, 19, 2);
-            chaoCanvas.fillCircle(58, 12, 1.5);
-            chaoCanvas.generateTexture('texturaChao', 64, 32);
+        this.chao = this.add.tileSprite(640, 675, 1280, 90, 'texturaChao');
+
+        // Ajustar a escala do tile para que a imagem caiba perfeitamente na altura de 90
+        let frameChao = this.textures.get('texturaChao').get();
+        if (frameChao) {
+            this.chao.tileScaleY = 90 / frameChao.height;
+            this.chao.tileScaleX = this.chao.tileScaleY;
         }
 
-        this.chao = this.add.tileSprite(640, 675, 1280, 90, 'texturaChao');
         this.physics.add.existing(this.chao, true);
 
         this.chao.postFX.addBlur(.01, .01 , .01, .01);
@@ -285,7 +281,6 @@ export default class GameScene extends Phaser.Scene {
         }
 
         this.background.tilePositionX += this.velocidadeJogo * 0.003;
-        this.chao.tilePositionX += this.velocidadeJogo * 0.005;
 
         if ((this.teclas.up.isDown || this.teclas.space.isDown) && this.player.body.touching.down) {
             this.player.setVelocityY(-520);

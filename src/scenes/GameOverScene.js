@@ -109,24 +109,15 @@ export default class GameOverScene extends Phaser.Scene {
 
     saveScore(score, coins) {
         try {
-            const name = localStorage.getItem('tp2_player_name') || t('player');
-            const key = 'tp2_leaderboard';
-            const raw = localStorage.getItem(key);
-            const arr = raw ? JSON.parse(raw) : [];
-            const existingIndex = arr.findIndex(entry => entry.name === name);
-
-            if (existingIndex !== -1) {
-                arr[existingIndex].coins = coins;
-                if (score > arr[existingIndex].score) {
-                    arr[existingIndex].score = score;
-                    arr[existingIndex].date = Date.now();
-                }
-            } else {
-                arr.push({ name, score, coins, date: Date.now() });
+            // Save highest score
+            const currentHighest = parseInt(localStorage.getItem('tp2_highest_score')) || 0;
+            if (score > currentHighest) {
+                localStorage.setItem('tp2_highest_score', score);
             }
 
-            arr.sort((a, b) => b.score - a.score);
-            localStorage.setItem(key, JSON.stringify(arr.slice(0, 50)));
+            // Accumulate total coins
+            const currentCoins = parseInt(localStorage.getItem('tp2_total_coins')) || 0;
+            localStorage.setItem('tp2_total_coins', currentCoins + coins);
         } catch (e) {}
     }
 }
