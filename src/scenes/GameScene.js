@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { t } from '../traducao.js';
+import ParallaxManager from './ParallaxManager.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -7,19 +8,25 @@ export default class GameScene extends Phaser.Scene {
     }
 
     preload() {
-        if (!this.textures.exists('fundo')) {
-            this.load.image('fundo', 'assets/images/background2.jpg');
-        }
+        this._parallax = new ParallaxManager(this);
+        this._parallax.preload();
+
         if (!this.textures.exists('player')) {
-            this.load.image('player', 'assets/images/player.png');
+            this.load.spritesheet('player', 'assets/images/Sprite-0001.png', {
+                frameWidth: 96,
+                frameHeight: 96
+            });
+        }
+        if (!this.textures.exists('playerJumpUp')) {
+            this.load.image('playerJumpUp', 'assets/images/Sprite-jump.png');
+        }
+        if (!this.textures.exists('playerJumpDown')) {
+            this.load.image('playerJumpDown', 'assets/images/Sprite-down.png');
         }
         if (!this.textures.exists('cactus')) {
             this.load.image('cactus', 'assets/images/cactus.png');
         }
-        if (!this.textures.exists('texturaChao')) {
-            this.load.image('texturaChao', 'assets/images/ground_Sprite.png');
-        }
-        this.load.audio('gameMusic', '/assets/music/gamemusic.mp3');
+        this.load.audio('gameMusic', 'assets/music/gamemusic.mp3');
         this.load.spritesheet('coin', 'assets/images/coin.png', {
             frameWidth: 16,
             frameHeight: 16
@@ -35,44 +42,40 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
+        this.anims.create({
+            key: 'playerRun',
+            frames: this.anims.generateFrameNumbers('player'),
+            frameRate: 10,
+            repeat: -1
+        });
+
         this._isTransitioning = false;
         this._isPaused = false;
+        this.time.paused = false;
+        this.physics.resume();
         this._isCountingDown = false;
         this.velocidadeJogo = 300;
         this.velocidadeMaxima = 800;
         this.aceleracao = 0.05;
         this.score = 0;
         this.coinsCollected = 0;
+        this._playerState = 'run'; 
 
-        this.background = this.add.tileSprite(640, 360, 1280, 720, 'fundo');
-        this.background.tileScaleX = 1280 / 1416;
-        this.background.tileScaleY = 720 / 980;
-
-        this.background.postFX.addBlur(.5, .5, 1, 1);
+        this._parallax.create();
+        this.chao = this._parallax.getGround();
 
         this.scoreText = this.add.text(640, 16, `${t('score')}: 0`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5, 0);
         this.coinText = this.add.text(640, 48, `${t('coins')}: 0`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5, 0);
+        this.debugText = this.add.text(100, 16, 'Debug', { fontSize: '16px', fill: '#0f0' }).setOrigin(0, 0);
         this.startGameMusic();
 
-        this.chao = this.add.tileSprite(640, 675, 1280, 90, 'texturaChao');
-
-        // Ajustar a escala do tile para que a imagem caiba perfeitamente na altura de 90
-        let frameChao = this.textures.get('texturaChao').get();
-        if (frameChao) {
-            this.chao.tileScaleY = 90 / frameChao.height;
-            this.chao.tileScaleX = this.chao.tileScaleY;
-        }
-
-        this.physics.add.existing(this.chao, true);
-
-        this.chao.postFX.addBlur(.01, .01 , .01, .01);
-
         this.player = this.physics.add.sprite(100, 200, 'player');
-        this.player.setScale(0.05);
+        this.player.setScale(1);
         this.player.setCollideWorldBounds(true);
-        this.player.body.setSize(720, 1320);
-        this.player.body.setOffset(560, 600);
+        this.player.body.setSize(60, 80);
+        this.player.body.setOffset(18, 12);
         this.player.body.setGravityY(800);
+        this.player.play('playerRun');
         this.physics.add.collider(this.player, this.chao);
 
         this.teclas = this.input.keyboard.createCursorKeys();
@@ -220,13 +223,11 @@ export default class GameScene extends Phaser.Scene {
     startResumeCountdown() {
         if (this._isCountingDown) return;
         this._isCountingDown = true;
-
-        // Hide buttons/title but keep dim visible
         this._pauseGroup.getChildren().forEach(c => {
             if (c !== this._countdownText) c.setVisible(false);
         });
 
-        // Keep a subtle dim overlay
+
         const dim = this._pauseGroup.getChildren()[0];
         if (dim) { dim.setAlpha(0.4); dim.setVisible(true); }
 
@@ -255,7 +256,6 @@ export default class GameScene extends Phaser.Scene {
             this._countdownText.setScale(1.4);
             this._countdownText.setAlpha(1);
 
-            // Animate: scale down + fade slightly
             this.tweens.add({
                 targets: this._countdownText,
                 scale: 1.0,
@@ -273,19 +273,48 @@ export default class GameScene extends Phaser.Scene {
     }
 
     update() {
-        // Don't update game logic while paused or counting down
         if (this._isPaused || this._isCountingDown) return;
 
         if (this.velocidadeJogo < this.velocidadeMaxima) {
             this.velocidadeJogo += this.aceleracao;
         }
 
-        this.background.tilePositionX += this.velocidadeJogo * 0.003;
+        this._parallax.update(this.velocidadeJogo);
 
-        if ((this.teclas.up.isDown || this.teclas.space.isDown) && this.player.body.touching.down) {
+        const onGround = this.player.body.touching.down || this.player.body.blocked.down;
+
+        if ((this.teclas.up.isDown || this.teclas.space.isDown) && onGround) {
             this.player.setVelocityY(-520);
         }
 
+        this.debugText.setText(`State: ${this._playerState} | onGround: ${onGround} | velY: ${Math.round(this.player.body.velocity.y)}`);
+
+        
+       if (onGround) {
+            if (this._playerState !== 'run') {
+                this._playerState = 'run';
+                this.player.stop(); 
+                this.player.setTexture('player'); 
+                this.player.play('playerRun', true);
+            }
+        } else if (this.player.body.velocity.y < -1) { 
+            // Rising
+            if (this._playerState !== 'jumpUp') {
+                this._playerState = 'jumpUp';
+                this.player.stop(); 
+                this.player.setTexture('playerJumpUp', 0);
+                this.player.setScale(0.9);
+            }
+        } else if (this.player.body.velocity.y > 1) {
+            // Falling
+            if (this._playerState !== 'jumpDown') {
+                this._playerState = 'jumpDown';
+                this.player.stop(); 
+                this.player.setTexture('playerJumpDown', 0); 
+                this.player.setScale(0.9);
+            }
+        }
+        
         this.score += 1;
         this.scoreText.setText(`${t('score')}: ${Math.floor(this.score / 10)}`);
 
@@ -331,7 +360,7 @@ export default class GameScene extends Phaser.Scene {
         const minDelay = 1000;
         const maxDelay = 3000;
         const randomDelay = Phaser.Math.Between(minDelay, maxDelay);
-        this.time.delayedCall(randomDelay, this.criarObstaculo, [], this);
+        this.time.delayedCall(randomDelay, () => this.criarObstaculo(), [], this);
     }
 
     criarMoeda() {
@@ -345,7 +374,8 @@ export default class GameScene extends Phaser.Scene {
         coin.play('coinSpin');
 
         coin.body.setAllowGravity(false);
-        coin.body.setSize(135, 16);
+        coin.body.setSize(14, 14);
+        coin.body.setOffset(1, 1);
 
         this.tweens.add({
             targets: coin,

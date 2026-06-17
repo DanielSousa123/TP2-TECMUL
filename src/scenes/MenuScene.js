@@ -8,8 +8,8 @@ export default class MenuScene extends Phaser.Scene {
 
     preload() {
         this.load.image('fundo', 'assets/images/background2.jpg');
-        this.load.audio('menuMusic', '/assets/music/Losing Sight.wav');
-        this.load.audio('hoverSfx', '/assets/music/Retro1.wav');
+        this.load.audio('menuMusic', 'assets/music/Losing Sight.wav');
+        this.load.audio('hoverSfx', 'assets/music/Retro1.wav');
     }
 
     create() {

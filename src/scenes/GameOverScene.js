@@ -13,8 +13,8 @@ export default class GameOverScene extends Phaser.Scene {
 
     preload() {
         this.load.image('fundo', 'assets/images/background2.jpg');
-        this.load.audio('gameOverMusic', '/assets/music/Medusa.wav');
-        this.load.audio('hoverSfx', '/assets/music/Retro1.wav');
+        this.load.audio('gameOverMusic', 'assets/music/Medusa.wav');
+        this.load.audio('hoverSfx', 'assets/music/Retro1.wav');
     }
 
     create() {
