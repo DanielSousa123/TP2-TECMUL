@@ -23,8 +23,10 @@ export default class GameScene extends Phaser.Scene {
         if (!this.textures.exists('playerJumpDown')) {
             this.load.image('playerJumpDown', 'assets/images/Sprite-down.png');
         }
-        if (!this.textures.exists('cactus')) {
-            this.load.image('cactus', 'assets/images/cactus.png');
+        for (let i = 1; i <= 4; i++) {
+            if (!this.textures.exists(`cactus${i}`)) {
+                this.load.image(`cactus${i}`, `assets/Cactus/${i}.png`);
+            }
         }
         if (!this.textures.exists('playerSlide')) {
             this.load.image('playerSlide', 'assets/images/Sprite-slide.png');
@@ -305,30 +307,36 @@ export default class GameScene extends Phaser.Scene {
     }
 
     startSlide() {
-    if (this.isSliding) return;
+        if (this.isSliding) return;
 
-    const onGround =
-        this.player.body.touching.down ||
-        this.player.body.blocked.down;
+        const onGround =
+            this.player.body.touching.down ||
+            this.player.body.blocked.down;
 
-    if (!onGround) return;
+        if (!onGround) return;
 
-    this.isSliding = true;
-    this._playerState = 'slide';
+        this.isSliding = true;
+        this._playerState = 'slide';
 
-    this.player.stop();
-    this.player.setTexture('playerSlide');
+        this.player.stop();
+        this.player.setTexture('playerSlide');
 
-    this.player.body.setSize(60, 40);
-    this.player.body.setOffset(18, 50);
+        this.player.body.setSize(60, 40);
+        this.player.body.setOffset(18, 50);
 
-    this.time.delayedCall(600, () => {
-        this.endSlide();
-    });
+        this._slideTimer = this.time.delayedCall(600, () => {
+            this.endSlide();
+        });
     }
 
     endSlide() {
         if (!this.isSliding) return;
+
+        // Cancel the auto-end timer if still pending
+        if (this._slideTimer) {
+            this._slideTimer.remove(false);
+            this._slideTimer = null;
+        }
 
         this.isSliding = false;
         this.player.body.setSize(60, 80);
@@ -491,9 +499,9 @@ export default class GameScene extends Phaser.Scene {
 
     update() {
 
-        if (Phaser.Input.Keyboard.JustDown(this.slideKey)) {
-            this.slide();
-        }   
+        if (Phaser.Input.Keyboard.JustDown(this.slideKey) || Phaser.Input.Keyboard.JustDown(this.downKey)) {
+            this.startSlide();
+        }
 
         if (this._isPaused || this._isCountingDown) return;
 
@@ -513,6 +521,9 @@ export default class GameScene extends Phaser.Scene {
         const onGround = this.player.body.touching.down || this.player.body.blocked.down;
 
         if ((this.teclas.up.isDown || this.teclas.space.isDown) && onGround) {
+            if (this.isSliding) {
+                this.endSlide();
+            }
             this.player.setVelocityY(-520);
         }
 
@@ -569,29 +580,7 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-            slide() {
-                if (this.isSliding || !this.player.body.onFloor()) return;
-
-                this.isSliding = true;
-                this._playerState = 'slide';
-                this.player.setTexture('playerSlide');
-
-                this.player.body.setSize(60, 40);
-                this.player.body.setOffset(18, 50);
-
-                this.time.delayedCall(1000, () => {
-                    this.isSliding = false;
-                    this._playerState = 'run';
-
-                    this.player.setTexture('player');
-                    this.player.play('playerRun');
-
-                    this.player.body.setSize(60, 80);
-                    this.player.body.setOffset(18, 12);
-                });
-            }
-
-    startGameMusic() {
+        startGameMusic() {
         const isMuted = localStorage.getItem('tp2_muted') === 'true';
         const volume = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
         const actualVolume = isMuted ? 0 : volume * 0.4;
@@ -603,18 +592,50 @@ export default class GameScene extends Phaser.Scene {
         this.coinCollectSound = this.sound.add('coinCollectSound', { volume: coinVolume });
     }
 
+    getOpaqueBounds(textureKey) {
+        const src = this.textures.get(textureKey).getSourceImage();
+        const cvs = document.createElement('canvas');
+        cvs.width  = src.width;
+        cvs.height = src.height;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(src, 0, 0);
+        const { data, width, height } = ctx.getImageData(0, 0, cvs.width, cvs.height);
+
+        let minX = width, maxX = 0, minY = height, maxY = 0;
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const alpha = data[(y * width + x) * 4 + 3];
+                if (alpha > 10) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+
+        // Fallback to full image if entirely transparent
+        if (minX > maxX || minY > maxY) {
+            return { x: 0, y: 0, w: width, h: height };
+        }
+        return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+    }
+
     criarObstaculo() {
         if (this._isTransitioning) return;
         const obstacleType = Phaser.Math.Between(0, 1) === 0 ? 'cactus' : 'bird';
 
         if (obstacleType === 'cactus') {
-            const CACTUS_SCALE = 0.080;
-            const obstaculo = this.obstaculos.create(1350, 600, 'cactus');
-            obstaculo.setScale(CACTUS_SCALE);
+            const variant = Phaser.Math.Between(1, 4);
+            const obstaculo = this.obstaculos.create(1350, 587, `cactus${variant}`);
+            obstaculo.setScale(1);
             obstaculo.body.setAllowGravity(false);
             obstaculo.body.setImmovable(true);
-            obstaculo.body.setSize(420, 820);
-            obstaculo.body.setOffset(258, 105);
+            const bounds = this.getOpaqueBounds(`cactus${variant}`);
+            const hitW = Math.round(bounds.w * 0.6);
+            const hitX = bounds.x + Math.round((bounds.w - hitW) / 2);
+            obstaculo.body.setSize(hitW, bounds.h);
+            obstaculo.body.setOffset(hitX, bounds.y);
         } else {
             
             const BIRD_Y = Phaser.Math.Between(560, 570); // High enough to require sliding under
@@ -718,7 +739,6 @@ export default class GameScene extends Phaser.Scene {
 
     shutdown() {
         if (this._deadeyeTimeout) clearTimeout(this._deadeyeTimeout);
-        // Restore time scales in case scene is interrupted
         this.physics.world.timeScale = 1;
         this.time.timeScale = 1;
     }
