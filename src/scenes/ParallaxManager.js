@@ -38,7 +38,7 @@ export default class ParallaxManager {
 
         // Chão sincronizado com a velocidade dos obstáculos
         if (this.ground) {
-            this.ground.tilePositionX += delta * 1.0;
+            this.ground.tilePositionX += delta * 3.0;
         }
     }
 

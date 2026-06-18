@@ -44,6 +44,10 @@ export default class GameScene extends Phaser.Scene {
     }
 
     create() {
+
+        this.slideKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        this.downKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+
         // Create Coin Animation
         this.anims.create({
             key: 'coinSpin',
@@ -335,6 +339,11 @@ export default class GameScene extends Phaser.Scene {
     }
 
     update() {
+
+        if (Phaser.Input.Keyboard.JustDown(this.slideKey)) {
+            this.slide();
+        }   
+
         if (this._isPaused || this._isCountingDown) return;
 
         if (this.velocidadeJogo < this.velocidadeMaxima) {
@@ -352,30 +361,36 @@ export default class GameScene extends Phaser.Scene {
         this.debugText.setText(`State: ${this._playerState} | onGround: ${onGround} | velY: ${Math.round(this.player.body.velocity.y)}`);
 
         
-       if (onGround) {
+       if (!this.isSliding) {
+
+    if (onGround) {
             if (this._playerState !== 'run') {
                 this._playerState = 'run';
-                this.player.stop(); 
-                this.player.setTexture('player'); 
+                this.player.stop();
+                this.player.setTexture('player');
                 this.player.play('playerRun', true);
             }
-        } else if (this.player.body.velocity.y < -1) { 
-            // Rising
+
+        } else if (this.player.body.velocity.y < -1) {
+
             if (this._playerState !== 'jumpUp') {
                 this._playerState = 'jumpUp';
-                this.player.stop(); 
+                this.player.stop();
                 this.player.setTexture('playerJumpUp', 0);
                 this.player.setScale(0.9);
             }
+
         } else if (this.player.body.velocity.y > 1) {
-            // Falling
+
             if (this._playerState !== 'jumpDown') {
                 this._playerState = 'jumpDown';
-                this.player.stop(); 
-                this.player.setTexture('playerJumpDown', 0); 
+                this.player.stop();
+                this.player.setTexture('playerJumpDown', 0);
                 this.player.setScale(0.9);
             }
+
         }
+    }
         
         this.score += 1;
         this.scoreText.setText(`${t('score')}: ${Math.floor(this.score / 10)}`);
@@ -395,6 +410,28 @@ export default class GameScene extends Phaser.Scene {
             }
         });
     }
+
+            slide() {
+                if (this.isSliding || !this.player.body.onFloor()) return;
+
+                this.isSliding = true;
+                this._playerState = 'slide';
+                this.player.setTexture('playerSlide');
+
+                this.player.body.setSize(60, 40);
+                this.player.body.setOffset(18, 50);
+
+                this.time.delayedCall(1000, () => {
+                    this.isSliding = false;
+                    this._playerState = 'run';
+
+                    this.player.setTexture('player');
+                    this.player.play('playerRun');
+
+                    this.player.body.setSize(60, 80);
+                    this.player.body.setOffset(18, 12);
+                });
+            }
 
     startGameMusic() {
         const isMuted = localStorage.getItem('tp2_muted') === 'true';
