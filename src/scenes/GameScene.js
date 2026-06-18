@@ -614,7 +614,6 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Fallback to full image if entirely transparent
         if (minX > maxX || minY > maxY) {
             return { x: 0, y: 0, w: width, h: height };
         }
