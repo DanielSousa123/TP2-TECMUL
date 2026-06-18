@@ -35,7 +35,22 @@ const dictionaries = {
         doubleLife: 'Dupla Vida',
         doubleLifeDesc: 'Revive e continua a pontuar',
         owned: 'Tens',
-        buyFailed: 'Moedas insuficientes!'
+        buyFailed: 'Moedas insuficientes!',
+        speedQuotes: [
+            "Hora de acelerar!",
+            "Temos de acelerar!",
+            "Vai mais rápido!",
+            "Sem travar agora!",
+            "Aumenta a velocidade!",
+            "Não há tempo a perder!",
+            "A coisa está a ficar séria!",
+            "Mais velocidade!",
+            "Agarra-te bem!",
+            "Isto vai acelerar!",
+            "Prepara-te!",
+            "Vai tudo mais rápido!"
+        ],
+        howTo: 'Salta com ESPAÇO ou Seta Cima. Desliza com S ou Seta Baixo. Evita obstáculos e apanha moedas.'
     },
     en: {
         start: 'START',
@@ -71,7 +86,22 @@ const dictionaries = {
         doubleLife: 'Double Life',
         doubleLifeDesc: 'Revive and keep your score',
         owned: 'Owned',
-        buyFailed: 'Not enough coins!'
+        buyFailed: 'Not enough coins!',
+        speedQuotes: [
+            "Time to speed up!",
+            "We need to go faster!",
+            "Picking up speed!",
+            "No slowing down now!",
+            "Speed increasing!",
+            "Things are getting faster!",
+            "Hold on tight!",
+            "Going faster!",
+            "Speed up!",
+            "It's getting serious!",
+            "Get ready!",
+            "Everything's faster now!"
+        ],
+        howTo: 'Jump with SPACE or Up Arrow. Slide with S or Down Arrow. Avoid obstacles and collect coins.'
     }
 };
  
@@ -88,4 +118,3 @@ export function t(key) {
     const language = getLanguage();
     return dictionaries[language][key] || dictionaries.pt[key] || key;
 }
- 
