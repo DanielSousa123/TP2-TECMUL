@@ -1,5 +1,5 @@
 const STORAGE_KEY = 'tp2_language';
-
+ 
 const dictionaries = {
     pt: {
         start: 'COMEÇAR',
@@ -29,7 +29,13 @@ const dictionaries = {
         scoreColumn: 'PONTOS',
         coinsColumn: 'MOEDAS',
         highestScore: 'Recorde',
-        shop: 'LOJA'
+        shop: 'LOJA',
+        deadeye: 'Olho da Morte',
+        deadeyeDesc: 'Abranda o jogo 8 segundos (tecla F)',
+        doubleLife: 'Dupla Vida',
+        doubleLifeDesc: 'Revive e continua a pontuar',
+        owned: 'Tens',
+        buyFailed: 'Moedas insuficientes!'
     },
     en: {
         start: 'START',
@@ -59,20 +65,27 @@ const dictionaries = {
         scoreColumn: 'SCORE',
         coinsColumn: 'COINS',
         highestScore: 'Highest Score',
-        shop: 'SHOP'
+        shop: 'SHOP',
+        deadeye: 'Deadeye',
+        deadeyeDesc: 'Slows game for 8 seconds (F key)',
+        doubleLife: 'Double Life',
+        doubleLifeDesc: 'Revive and keep your score',
+        owned: 'Owned',
+        buyFailed: 'Not enough coins!'
     }
 };
-
+ 
 export function getLanguage() {
     const saved = localStorage.getItem(STORAGE_KEY);
     return saved === 'en' ? 'en' : 'pt';
 }
-
+ 
 export function setLanguage(language) {
     localStorage.setItem(STORAGE_KEY, language === 'en' ? 'en' : 'pt');
 }
-
+ 
 export function t(key) {
     const language = getLanguage();
     return dictionaries[language][key] || dictionaries.pt[key] || key;
 }
+ 

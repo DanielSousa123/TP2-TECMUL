@@ -37,6 +37,13 @@ export default class GameScene extends Phaser.Scene {
         }
 
         this.load.audio('gameMusic', 'assets/music/gamemusic.mp3');
+        this.load.audio('coinCollectSound', 'assets/music/coin_collect_sound.mp3');
+        if (!this.textures.exists('wine_deadeye')) {
+            this.load.image('wine_deadeye', 'assets/images/wine_deadeye.png');
+        }
+        if (!this.textures.exists('health_potion')) {
+            this.load.image('health_potion', 'assets/images/health_potion.png');
+        }
         this.load.spritesheet('coin', 'assets/images/coin.png', {
             frameWidth: 16,
             frameHeight: 16
@@ -47,6 +54,13 @@ export default class GameScene extends Phaser.Scene {
 
         this.slideKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.downKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
+        this.deadeyeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
+
+        // ── Item inventory ────────────────────────────────────────────────
+        this._deadeyeCount = parseInt(localStorage.getItem('tp2_deadeye_count')) || 0;
+        this._doubleLifeCount = parseInt(localStorage.getItem('tp2_doublelife_count')) || 0;
+        this._isDeadeye = false;
+        this._doubleLifeUsed = false;
 
         // Create Coin Animation
         this.anims.create({
@@ -150,7 +164,144 @@ export default class GameScene extends Phaser.Scene {
 
         this.cameras.main.fadeIn(400);
 
+        // ── Item HUD ─────────────────────────────────────────────────────
+        this._buildItemHUD();
+
+        // F key → activate deadeye
+        this.input.keyboard.on('keydown-F', () => this._activateDeadeye());
+    }
         
+    // ── Item HUD ─────────────────────────────────────────────────────────
+    _buildItemHUD() {
+        // Deadeye icon + count (bottom-left area)
+        this._deadeyeIcon = this.add.image(40, 660, 'wine_deadeye').setDepth(5);
+        this._deadeyeIcon.setDisplaySize(40, 40);
+        this._deadeyeCountText = this.add.text(68, 660, `x${this._deadeyeCount}`, {
+            fontSize: '18px', fill: '#ffd966', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0, 0.5).setDepth(5);
+        this.add.text(40, 688, '[F]', {
+            fontSize: '12px', fill: '#aaa', stroke: '#000', strokeThickness: 2
+        }).setOrigin(0.5).setDepth(5);
+
+        // Double Life icon + count
+        this._doubleLifeIcon = this.add.image(130, 660, 'health_potion').setDepth(5);
+        this._doubleLifeIcon.setDisplaySize(40, 40);
+        this._doubleLifeCountText = this.add.text(158, 660, `x${this._doubleLifeCount}`, {
+            fontSize: '18px', fill: '#ffd966', stroke: '#000', strokeThickness: 3
+        }).setOrigin(0, 0.5).setDepth(5);
+
+        // Deadeye timer bar (hidden)
+        this._deadeyeBarBg = this.add.rectangle(40, 710, 100, 8, 0x333333).setOrigin(0, 0.5).setDepth(5).setVisible(false);
+        this._deadeyeBar    = this.add.rectangle(40, 710, 100, 8, 0xff8800).setOrigin(0, 0.5).setDepth(5).setVisible(false);
+
+        // Orange overlay for deadeye (hidden)
+        this._deadeyeOverlay = this.add.rectangle(640, 360, 1280, 720, 0xff6600, 0)
+            .setDepth(4).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    }
+
+    _activateDeadeye() {
+        if (this._isDeadeye || this._deadeyeCount <= 0 || this._isPaused || this._isCountingDown || this._isTransitioning) return;
+
+        this._deadeyeCount--;
+        localStorage.setItem('tp2_deadeye_count', String(this._deadeyeCount));
+        this._deadeyeCountText.setText(`x${this._deadeyeCount}`);
+
+        this._isDeadeye = true;
+        const SLOW = 0.6; // 50% speed
+        const DURATION = 8000;
+
+        // Slow physics time scale
+        this.physics.world.timeScale = 1 / SLOW;
+        this.time.timeScale = SLOW;
+        if (this.gameMusic) this.gameMusic.setRate(SLOW);
+
+        // Orange overlay fade in
+        this.tweens.add({ targets: this._deadeyeOverlay, alpha: 0.22, duration: 300 });
+
+        // Timer bar
+        this._deadeyeBarBg.setVisible(true);
+        this._deadeyeBar.setVisible(true).setScale(1, 1);
+        this.tweens.add({
+            targets: this._deadeyeBar,
+            scaleX: 0,
+            duration: DURATION / SLOW, // real-time duration (tweens run in real time when timeScale is on physics)
+            ease: 'Linear'
+        });
+
+        // Actually we drive bar manually via elapsed
+        this._deadeyeStart = this.time.now; // game time (already scaled)
+        this._deadeyeBarBg.setVisible(true);
+        this._deadeyeBar.setVisible(true);
+        this.tweens.killTweensOf(this._deadeyeBar);
+
+        // Use a real-time timer via scene's time (we need wall-clock 8 s)
+        this._deadeyeEndAt = Date.now() + DURATION;
+
+        // HUD pulse
+        this.tweens.add({ targets: this._deadeyeIcon, alpha: 0.4, duration: 400, yoyo: true, repeat: -1, ease: 'Sine' });
+
+        // Schedule end
+        // We use a native setTimeout so it's unaffected by Phaser timeScale
+        this._deadeyeTimeout = setTimeout(() => this._endDeadeye(), DURATION);
+    }
+
+    _endDeadeye() {
+        if (!this._isDeadeye) return;
+        this._isDeadeye = false;
+
+        this.physics.world.timeScale = 1;
+        this.time.timeScale = 1;
+        if (this.gameMusic) this.gameMusic.setRate(1);
+
+        this.tweens.add({ targets: this._deadeyeOverlay, alpha: 0, duration: 500 });
+        this._deadeyeBarBg.setVisible(false);
+        this._deadeyeBar.setVisible(false);
+        this.tweens.killTweensOf(this._deadeyeIcon);
+        this._deadeyeIcon.setAlpha(1);
+    }
+
+    _revivePlayer() {
+        // Reset transitioning flag so physics overlap is live again
+        this._isTransitioning = false;
+
+        // Reset player position and tint
+        this.player.clearTint();
+        this.player.setPosition(100, 200);
+        this.player.setVelocity(0, 0);
+        this.physics.resume();
+        this.player.play('playerRun', true);
+        this._playerState = 'run';
+
+        // Clear obstacles
+        this.obstaculos.clear(true, true);
+
+        // Countdown before resuming
+        this._isCountingDown = true;
+        let count = 3;
+        const countTxt = this.add.text(640, 360, String(count), {
+            fontSize: '100px', fontStyle: 'bold',
+            fill: '#ffffff', stroke: '#000000', strokeThickness: 10
+        }).setOrigin(0.5).setDepth(30);
+
+        const tick = () => {
+            countTxt.setText(String(count));
+            countTxt.setScale(1.5).setAlpha(1);
+            this.tweens.add({
+                targets: countTxt,
+                scale: 1, alpha: 0.6,
+                duration: 900, ease: 'Cubic.easeIn',
+                onComplete: () => {
+                    count--;
+                    if (count > 0) { tick(); }
+                    else {
+                        countTxt.destroy();
+                        this._isCountingDown = false;
+                        this.agendarProximoObstaculo();
+                    }
+                }
+            });
+        };
+        tick();
     }
 
     startSlide() {
@@ -346,6 +497,13 @@ export default class GameScene extends Phaser.Scene {
 
         if (this._isPaused || this._isCountingDown) return;
 
+        // Update deadeye timer bar (uses wall-clock time)
+        if (this._isDeadeye && this._deadeyeEndAt) {
+            const remaining = Math.max(0, this._deadeyeEndAt - Date.now());
+            const pct = remaining / 8000;
+            this._deadeyeBar.setScale(pct, 1);
+        }
+
         if (this.velocidadeJogo < this.velocidadeMaxima) {
             this.velocidadeJogo += this.aceleracao;
         }
@@ -436,10 +594,13 @@ export default class GameScene extends Phaser.Scene {
     startGameMusic() {
         const isMuted = localStorage.getItem('tp2_muted') === 'true';
         const volume = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
-        const actualVolume = isMuted ? 0 : volume;
+        const actualVolume = isMuted ? 0 : volume * 0.4;
 
         this.gameMusic = this.sound.add('gameMusic', { loop: true, volume: actualVolume });
         this.gameMusic.play();
+
+        const coinVolume = isMuted ? 0 : volume * 0.8;
+        this.coinCollectSound = this.sound.add('coinCollectSound', { volume: coinVolume });
     }
 
     criarObstaculo() {
@@ -514,18 +675,52 @@ export default class GameScene extends Phaser.Scene {
         coin.destroy();
         this.coinsCollected += 1;
         this.coinText.setText(`${t('coins')}: ${this.coinsCollected}`);
+        if (this.coinCollectSound) {
+            this.coinCollectSound.play();
+        }
     }
 
     gameOver() {
         if (this._isTransitioning || this._isPaused || this._isCountingDown) return;
+
+        // ── Double Life check ─────────────────────────────────────────────
+        if (this._doubleLifeCount > 0 && !this._doubleLifeUsed) {
+            this._doubleLifeUsed = true;
+            this._doubleLifeCount--;
+            localStorage.setItem('tp2_doublelife_count', String(this._doubleLifeCount));
+            this._doubleLifeCountText.setText(`x${this._doubleLifeCount}`);
+
+            // End deadeye if active
+            if (this._isDeadeye) {
+                clearTimeout(this._deadeyeTimeout);
+                this._endDeadeye();
+            }
+
+            this._revivePlayer();
+            return;
+        }
+
         this._isTransitioning = true;
         this.physics.pause();
         if (this.gameMusic && this.gameMusic.isPlaying) {
             this.gameMusic.stop();
         }
 
+        // End deadeye cleanly
+        if (this._isDeadeye) {
+            clearTimeout(this._deadeyeTimeout);
+            this._endDeadeye();
+        }
+
         this.player.setTint(0xff0000);
         this.transitionTo('GameOverScene', { score: Math.floor(this.score / 10), coins: this.coinsCollected });
+    }
+
+    shutdown() {
+        if (this._deadeyeTimeout) clearTimeout(this._deadeyeTimeout);
+        // Restore time scales in case scene is interrupted
+        this.physics.world.timeScale = 1;
+        this.time.timeScale = 1;
     }
 
     transitionTo(targetScene, data) {
