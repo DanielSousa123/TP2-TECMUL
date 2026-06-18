@@ -67,25 +67,6 @@ export default class ShopScene extends Phaser.Scene {
                 price: 50,
                 sprite: 'health_potion',
                 storageKey: 'tp2_doublelife_count'
-            },
-            // Legacy items (no sprite key => coloured square placeholder)
-            {
-                key: 'extraLife',
-                nameKey: null,
-                name: 'Extra Life',
-                desc: 'Start with 1 extra life',
-                price: 100,
-                sprite: null,
-                storageKey: 'tp2_extralife_count'
-            },
-            {
-                key: 'doubleCoins',
-                nameKey: null,
-                name: 'Double Coins',
-                desc: 'Coins worth 2x for 1 game',
-                price: 150,
-                sprite: null,
-                storageKey: 'tp2_doublecoins_count'
             }
         ];
 

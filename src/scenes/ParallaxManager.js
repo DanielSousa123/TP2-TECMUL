@@ -1,10 +1,3 @@
-/**
- * ParallaxManager
- * ---------------
- * Gere o fundo com efeito de paralaxe usando apenas as imagens reais:
- *   Camada 0 – background2.jpg (fundo distante)  ×0.15 da velocidade
- *   Camada 1 – ground_Sprite.png (chão)          ×1.00 da velocidade
- */
 export default class ParallaxManager {
     constructor(scene) {
         this.scene = scene;
@@ -12,7 +5,6 @@ export default class ParallaxManager {
         this.ground = null;
     }
 
-    // Chamar no preload() da cena
     preload() {
         const s = this.scene;
         if (!s.textures.exists('fundo')) {
@@ -23,26 +15,24 @@ export default class ParallaxManager {
         }
     }
 
-    // Chamar no create() da cena, ANTES de criar o jogador
+
     create() {
         this._buildBackground();
         this._buildGround();
     }
 
-    // Chamar no update() da cena com a velocidade actual
+    
     update(speed) {
-        const delta = speed * 0.003;
+        const delta = speed * 0.01;
 
-        // Background move-se mais devagar (efeito de profundidade)
+        // Background moves slower
         this.layers[0].tilePositionX += delta * 0.15;
 
-        // Chão sincronizado com a velocidade dos obstáculos
         if (this.ground) {
             this.ground.tilePositionX += delta * 3.0;
         }
     }
 
-    // Retorna o sprite do chão para adicionar física na cena
     getGround() {
         return this.ground;
     }
