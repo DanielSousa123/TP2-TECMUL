@@ -45,7 +45,6 @@ export default class ShopScene extends Phaser.Scene {
             strokeThickness: 4
         }).setOrigin(0.5);
 
-        // Feedback text (hidden)
         this._feedbackText = this.add.text(640, 148, '', {
             fontSize: '18px',
             fill: '#ff6666',
@@ -53,7 +52,7 @@ export default class ShopScene extends Phaser.Scene {
             strokeThickness: 3
         }).setOrigin(0.5).setDepth(10);
 
-        // ── Item definitions ────────────────────────────────────────────
+        // Items
         const shopItems = [
             {
                 key: 'deadeye',
@@ -73,8 +72,8 @@ export default class ShopScene extends Phaser.Scene {
             },
             {
                 key: 'morgansHat',
-                name: "Morgan's Hat",
-                desc: 'Duplica a pontuação desde o início',
+                nameKey: 'morgansHat',
+                descKey: 'morgansHatDesc',
                 price: 50,
                 sprite: 'morgans_hat',
                 storageKey: 'tp2_morganshat_count'
@@ -158,7 +157,6 @@ export default class ShopScene extends Phaser.Scene {
             return;
         }
 
-        // Deduct coins
         this._totalCoins -= item.price;
         localStorage.setItem('tp2_total_coins', String(this._totalCoins));
         this._coinDisplay.setText(`${t('coins')}: ${this._totalCoins}`);
