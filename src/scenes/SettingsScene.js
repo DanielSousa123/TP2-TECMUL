@@ -107,6 +107,7 @@ export default class SettingsScene extends Phaser.Scene {
 
         makeLanguageButton(475, 'pt', t('portuguese'));
         makeLanguageButton(645, 'en', t('english'));
+        makeLanguageButton(815, 'es', t('spanish'));
     }
 
     transitionBack() {

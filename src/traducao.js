@@ -17,6 +17,7 @@ const dictionaries = {
         language: 'Idioma',
         portuguese: 'Português',
         english: 'Inglês',
+        spanish: 'Espanhol',
         muted: 'MUDO',
         gameOver: 'FIM DE JOGO',
         finalScore: 'Pontuação',
@@ -34,6 +35,8 @@ const dictionaries = {
         deadeyeDesc: 'Abranda o jogo 8 segundos (tecla F)',
         doubleLife: 'Dupla Vida',
         doubleLifeDesc: 'Revive e continua a pontuar',
+        morgansHat: "Chapéu de Morgan",
+        morgansHatDesc: 'Duplica a pontuação desde o início',
         owned: 'Tens',
         buyFailed: 'Moedas insuficientes!',
         speedQuotes: [
@@ -50,6 +53,9 @@ const dictionaries = {
             "Prepara-te!",
             "Vai tudo mais rápido!"
         ],
+        pause: 'Pausa',
+        resume: 'Continuar',
+        exit: 'Sair',
         howTo: 'Salta com ESPAÇO ou Seta Cima. Desliza com S ou Seta Baixo. Evita obstáculos e apanha moedas.'
     },
     en: {
@@ -68,6 +74,7 @@ const dictionaries = {
         language: 'Language',
         portuguese: 'Portuguese',
         english: 'English',
+        spanish: 'Spanish',
         muted: 'MUTE',
         gameOver: 'GAME OVER',
         finalScore: 'Score',
@@ -85,6 +92,8 @@ const dictionaries = {
         deadeyeDesc: 'Slows game for 8 seconds (F key)',
         doubleLife: 'Double Life',
         doubleLifeDesc: 'Revive and keep your score',
+        morgansHat: "Morgan's Hat",
+        morgansHatDesc: 'Doubles score from the start',
         owned: 'Owned',
         buyFailed: 'Not enough coins!',
         speedQuotes: [
@@ -101,17 +110,77 @@ const dictionaries = {
             "Get ready!",
             "Everything's faster now!"
         ],
+        pause: 'Pause',
+        resume: 'Resume',
+        exit: 'Exit',
         howTo: 'Jump with SPACE or Up Arrow. Slide with S or Down Arrow. Avoid obstacles and collect coins.'
+    },
+    es: {
+        start: 'EMPEZAR',
+        settings: 'AJUSTES',
+        rules: 'REGLAS',
+        ranking: 'CLASIFICACIÓN',
+        subtitle: 'Una Aventura en el Oeste',
+        name: 'Nombre:',
+        namePlaceholder: 'Nombre (opcional)',
+        score: 'Puntos',
+        coins: 'Monedas',
+        noScores: 'Sin puntuaciones',
+        close: 'Cerrar',
+        volume: 'Volumen',
+        language: 'Idioma',
+        portuguese: 'Portugués',
+        english: 'Inglés',
+        spanish: 'Español',
+        muted: 'SILENCIADO',
+        gameOver: 'FIN DEL JUEGO',
+        finalScore: 'Puntuación',
+        tryAgain: 'INTENTAR DE NUEVO',
+        mainMenu: 'MENÚ PRINCIPAL',
+        howTo: 'Salta con ESPACIO o Flecha Arriba. Evita obstáculos y recoge monedas.',
+        player: 'Jugador',
+        position: 'POS',
+        playerColumn: 'NOMBRE',
+        scoreColumn: 'PUNTOS',
+        coinsColumn: 'MONEDAS',
+        highestScore: 'Récord',
+        shop: 'TIENDA',
+        deadeye: 'Ojo de Muerte',
+        deadeyeDesc: 'Ralentiza el juego 8 segundos (tecla F)',
+        doubleLife: 'Doble Vida',
+        doubleLifeDesc: 'Revive y continúa puntuando',
+        morgansHat: 'Sombrero de Morgan',
+        morgansHatDesc: 'Duplica la puntuación desde el inicio',
+        owned: 'Tienes',
+        buyFailed: '¡Monedas insuficientes!',
+        speedQuotes: [
+            "¡Hora de acelerar!",
+            "¡Necesitamos ir más rápido!",
+            "¡Aumentando velocidad!",
+            "¡Sin frenar ahora!",
+            "¡Velocidad aumentando!",
+            "¡Las cosas se están poniendo más rápidas!",
+            "¡Agárrate fuerte!",
+            "¡Yendo más rápido!",
+            "¡Acelera!",
+            "¡Se está poniendo serio!",
+            "¡Prepárate!",
+            "¡Todo va más rápido ahora!"
+        ],
+        pause: 'Pausa',
+        resume: 'Continuar',
+        exit: 'Salir',
+        howTo: 'Salta con ESPACIO o Flecha Arriba. Desliza con S o Flecha Abajo. Evita obstáculos y recoge monedas.'
     }
 };
  
 export function getLanguage() {
     const saved = localStorage.getItem(STORAGE_KEY);
-    return saved === 'en' ? 'en' : 'pt';
+    return saved === 'en' ? 'en' : saved === 'es' ? 'es' : 'pt';
 }
  
 export function setLanguage(language) {
-    localStorage.setItem(STORAGE_KEY, language === 'en' ? 'en' : 'pt');
+    localStorage.setItem(STORAGE_KEY, language === 'en' ? 'en' : language === 'es' ? 'es' : 'pt');
 }
  
 export function t(key) {

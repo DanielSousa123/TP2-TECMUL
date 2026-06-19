@@ -15,13 +15,13 @@ export default class PauseMenu {
         const panel = scene.add.rectangle(640, 360, 420, 420, 0x2a1a0a, 0.97)
             .setStrokeStyle(3, 0xd4af37).setDepth(20);
 
-        this.titleText = scene.add.text(640, 210, 'Pausa', {
+        this.titleText = scene.add.text(640, 210, t('pause'), {
             fontSize: '40px', fontStyle: 'bold',
             fill: '#d4af37', stroke: '#4a260d', strokeThickness: 6
         }).setOrigin(0.5).setDepth(20);
 
         // Resume button
-        const resumeBtn = this._makeBtn(640, 295, 'Continuar', 0xb8860b, () => {
+        const resumeBtn = this._makeBtn(640, 295, t('resume'), 0xb8860b, () => {
             if (!scene._isCountingDown) this.startResumeCountdown();
         });
 
@@ -31,7 +31,7 @@ export default class PauseMenu {
         });
 
         // Exit to menu button
-        const menuBtn = this._makeBtn(640, 435, 'Sair', 0x8b6914, () => {
+        const menuBtn = this._makeBtn(640, 435, t('exit'), 0x8b6914, () => {
             if (!scene._isTransitioning && !scene._isCountingDown) {
                 this.hide();
                 scene.transitionTo('MenuScene');
@@ -176,7 +176,7 @@ export default class PauseMenu {
 
     _hideSettings() {
         this.settingsElements.forEach(o => o.setVisible(false));
-        this.titleText.setText('Pausa');
+        this.titleText.setText(t('pause'));
         this.mainElements.forEach(o => o.setVisible(true));
     }
 
@@ -215,7 +215,7 @@ export default class PauseMenu {
         this.group.getChildren().forEach(c => {
             if (c !== this.countdownText) c.setVisible(true);
         });
-        this.titleText.setText('Pausa');
+        this.titleText.setText(t('pause'));
         this.settingsElements.forEach(o => o.setVisible(false));
     }
 
