@@ -7,19 +7,19 @@ export default class GameScene extends Phaser.Scene {
         super('GameScene');
     }
 
-    // Pré-carregamento de recursos (imagens, sons, spritesheets)
+    // Preload assets (images, sounds, spritesheets)
     preload() {
         this._parallax = new ParallaxManager(this);
         this._parallax.preload();
 
-        // Spritesheet do jogador a correr
+        // Player running spritesheet
         if (!this.textures.exists('player')) {
             this.load.spritesheet('player', 'assets/images/Sprite-0001.png', {
                 frameWidth: 96,
                 frameHeight: 96
             });
         }
-        // Imagens do salto (subida e descida)
+        // Jump images (going up and coming down)
         if (!this.textures.exists('playerJumpUp')) {
             this.load.image('playerJumpUp', 'assets/images/Sprite-jump.png');
         }
@@ -27,30 +27,30 @@ export default class GameScene extends Phaser.Scene {
             this.load.image('playerJumpDown', 'assets/images/Sprite-down.png');
         }
 
-        // 4 variantes de cactos
+        // 4 cactus variants
         for (let i = 1; i <= 4; i++) {
             if (!this.textures.exists(`cactus${i}`)) {
                 this.load.image(`cactus${i}`, `assets/Cactus/${i}.png`);
             }
         }
 
-        // Imagem do deslize
+        // Slide image
         if (!this.textures.exists('playerSlide')) {
             this.load.image('playerSlide', 'assets/images/Sprite-slide.png');
         }
 
-        // 7 frames do pássaro a voar
+        // 7 flying-bird frames
         for (let i = 1; i <= 7; i++) {
             if (!this.textures.exists(`bird${i}`)) {
                 this.load.image(`bird${i}`, `assets/bird flying/${i}.png`);
             }
         }
 
-        // Sons
+        // Sounds
         this.load.audio('gameMusic', 'assets/music/gamemusic.mp3');
         this.load.audio('coinCollectSound', 'assets/music/coin_collect_sound.mp3');
 
-        // Ícones dos itens da loja
+        // Shop item icons
         if (!this.textures.exists('wine_deadeye')) {
             this.load.image('wine_deadeye', 'assets/images/wine_deadeye.png');
         }
@@ -58,30 +58,30 @@ export default class GameScene extends Phaser.Scene {
             this.load.image('health_potion', 'assets/images/health_potion.png');
         }
 
-        // Spritesheet da moeda
+        // Coin spritesheet
         this.load.spritesheet('coin', 'assets/images/coin.png', {
             frameWidth: 16,
             frameHeight: 16
         });
     }
 
-    // Inicialização da cena
+    // Scene initialization
     create() {
 
-        // Teclas de deslize e deadeye
+        // Slide and deadeye keys
         this.slideKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.downKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
         this.deadeyeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
 
-        // Inventário de itens (carregado do localStorage)
+        // Item inventory (loaded from localStorage)
         this._deadeyeCount = parseInt(localStorage.getItem('tp2_deadeye_count')) || 0;
         this._doubleLifeCount = parseInt(localStorage.getItem('tp2_doublelife_count')) || 0;
         this._isDeadeye = false;
         this._doubleLifeUsed = false;
 
-        // Animações
+        // Animations
 
-        // Animação da moeda a girar
+        // Coin spin animation
         this.anims.create({
             key: 'coinSpin',
             frames: this.anims.generateFrameNumbers('coin'),
@@ -89,7 +89,7 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Animação do jogador a correr
+        // Player run animation
         this.anims.create({
             key: 'playerRun',
             frames: this.anims.generateFrameNumbers('player'),
@@ -97,7 +97,7 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Animação do pássaro a voar (frames individuais)
+        // Bird flying animation (individual frames)
         const birdFrames = [];
         for (let i = 1; i <= 7; i++) {
             birdFrames.push({ key: `bird${i}` });
@@ -109,31 +109,31 @@ export default class GameScene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Estado inicial do jogo
+        // Initial game state
         this._isTransitioning = false;
         this.isSliding = false;
-        this._slideQueued = false; // deslize agendado para quando aterrar
+        this._slideQueued = false; // slide scheduled for when the player lands
         this._isPaused = false;
         this.time.paused = false;
         this.physics.resume();
         this._isCountingDown = false;
-        this.velocidadeJogo = 300;    // velocidade atual dos obstáculos
-        this.velocidadeMaxima = 800;  // teto de velocidade (cresce com o score)
-        this.aceleracao = 0.05;       // incremento de velocidade por frame
+        this.velocidadeJogo = 300;    // current obstacle speed
+        this.velocidadeMaxima = 800;  // speed cap (grows with score)
+        this.aceleracao = 0.05;       // speed increment per frame
         this.score = 0;
         this.coinsCollected = 0;
         this._playerState = 'run';
 
-        // Fundo parallax e chão
+        // Parallax background and ground
         this._parallax.create();
         this.chao = this._parallax.getGround();
 
-        // Textos do HUD (pontos e moedas)
+        // HUD texts (score and coins)
         this.scoreText = this.add.text(640, 16, `${t('score')}: 0`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5, 0);
         this.coinText = this.add.text(640, 48, `${t('coins')}: 0`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5, 0);
         //this.debugText = this.add.text(100, 16, 'Debug', { fontSize: '16px', fill: '#0f0' }).setOrigin(0, 0);
 
-        // Frase de aceleração — aparece ao centro quando o jogo acelera
+        // Speed-up quote — appears center screen when the game speeds up
         this._speedQuoteText = this.add.text(640, 320, '', {
             fontSize: '28px',
             fill: '#ffffff',
@@ -143,12 +143,12 @@ export default class GameScene extends Phaser.Scene {
             wordWrap: { width: 500 },
             align: 'center',
         }).setOrigin(0.5, 0.5).setAlpha(0).setDepth(10);
-        this._lastScoreTier = 0; // último nível de dificuldade registado
+        this._lastScoreTier = 0; // last difficulty tier reached
 
-        // Música
+        // Music
         this.startGameMusic();
 
-        // Jogador
+        // Player
         this.player = this.physics.add.sprite(100, 200, 'player');
         this.player.setScale(1);
         this.player.setCollideWorldBounds(true);
@@ -158,14 +158,14 @@ export default class GameScene extends Phaser.Scene {
         this.player.play('playerRun');
         this.physics.add.collider(this.player, this.chao);
 
-        // Teclas de movimento (setas)
+        // Movement keys (arrows)
         this.teclas = this.input.keyboard.createCursorKeys();
 
-        // Grupos de física para obstáculos e moedas
+        // Physics groups for obstacles and coins
         this.obstaculos = this.physics.add.group();
         this.coins = this.physics.add.group();
 
-        // Textura procedural da moeda (fallback caso o spritesheet falhe)
+        // Procedural coin texture (fallback in case the spritesheet fails)
         if (!this.textures.exists('texturaMoeda')) {
             const coinCanvas = this.make.graphics({ x: 0, y: 0, add: false });
             coinCanvas.fillStyle(0xffd34d);
@@ -177,15 +177,15 @@ export default class GameScene extends Phaser.Scene {
             coinCanvas.generateTexture('texturaMoeda', 32, 32);
         }
 
-        // Agendamento inicial de obstáculos e moedas
+        // Initial scheduling of obstacles and coins
         this.agendarProximoObstaculo();
         this.agendarProximaMoeda();
 
-        // Colisões e sobreposições
+        // Collisions and overlaps
         this.physics.add.collider(this.player, this.obstaculos, this.gameOver, null, this);
         this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this);
 
-        // Botão de pausa (canto superior direito)
+        // Pause button (top-right corner)
         this.pauseBtn = this.add.text(1260, 16, '⏸', {
             fontSize: '32px',
             fill: '#fff',
@@ -197,27 +197,27 @@ export default class GameScene extends Phaser.Scene {
         this.pauseBtn.on('pointerout',  () => this.pauseBtn.setAlpha(1));
         this.pauseBtn.on('pointerdown', () => this.togglePause());
 
-        // ESC ou P para pausar
+        // ESC or P to pause
         this.input.keyboard.on('keydown-ESC', () => this.togglePause());
         this.input.keyboard.on('keydown-P',   () => this.togglePause());
 
-        // Overlay de pausa (começa escondido)
+        // Pause overlay (starts hidden)
         this._pauseGroup = this.add.group();
         this._buildPauseOverlay();
 
-        // Fade de entrada
+        // Fade in
         this.cameras.main.fadeIn(400);
 
-        // HUD dos itens (deadeye e dupla vida)
+        // Item HUD (deadeye and double life)
         this._buildItemHUD();
 
-        // Tecla F activa o deadeye
+        // F key activates deadeye
         this.input.keyboard.on('keydown-F', () => this._activateDeadeye());
     }
 
-    // Constrói o HUD dos itens no canto inferior esquerdo
+    // Builds the item HUD in the bottom-left corner
     _buildItemHUD() {
-        // Ícone e contador do Deadeye
+        // Deadeye icon and counter
         this._deadeyeIcon = this.add.image(40, 660, 'wine_deadeye').setDepth(5);
         this._deadeyeIcon.setDisplaySize(40, 40);
         this._deadeyeCountText = this.add.text(68, 660, `x${this._deadeyeCount}`, {
@@ -227,44 +227,44 @@ export default class GameScene extends Phaser.Scene {
             fontSize: '12px', fill: '#aaa', stroke: '#000', strokeThickness: 2
         }).setOrigin(0.5).setDepth(5);
 
-        // Ícone e contador da Dupla Vida
+        // Double Life icon and counter
         this._doubleLifeIcon = this.add.image(130, 660, 'health_potion').setDepth(5);
         this._doubleLifeIcon.setDisplaySize(40, 40);
         this._doubleLifeCountText = this.add.text(158, 660, `x${this._doubleLifeCount}`, {
             fontSize: '18px', fill: '#ffd966', stroke: '#000', strokeThickness: 3
         }).setOrigin(0, 0.5).setDepth(5);
 
-        // Barra de tempo do deadeye (escondida até ser ativada)
+        // Deadeye timer bar (hidden until activated)
         this._deadeyeBarBg = this.add.rectangle(40, 710, 100, 8, 0x333333).setOrigin(0, 0.5).setDepth(5).setVisible(false);
         this._deadeyeBar    = this.add.rectangle(40, 710, 100, 8, 0xff8800).setOrigin(0, 0.5).setDepth(5).setVisible(false);
 
-        // Overlay laranja do deadeye (escondido por defeito)
+        // Orange deadeye overlay (hidden by default)
         this._deadeyeOverlay = this.add.rectangle(640, 360, 1280, 720, 0xff6600, 0)
             .setDepth(4).setBlendMode(Phaser.BlendModes.MULTIPLY);
     }
 
-    // Activa o deadeye (abranda o jogo 8 segundos)
+    // Activates deadeye (slows the game down for 8 seconds)
     _activateDeadeye() {
         if (this._isDeadeye || this._deadeyeCount <= 0 || this._isPaused || this._isCountingDown || this._isTransitioning) return;
 
-        // Desconta um uso e guarda no localStorage
+        // Spend one use and persist it to localStorage
         this._deadeyeCount--;
         localStorage.setItem('tp2_deadeye_count', String(this._deadeyeCount));
         this._deadeyeCountText.setText(`x${this._deadeyeCount}`);
 
         this._isDeadeye = true;
-        const SLOW = 0.6;       // fator de abrandamento
-        const DURATION = 8000;  // duração em milissegundos
+        const SLOW = 0.6;       // slow-down factor
+        const DURATION = 8000;  // duration in milliseconds
 
-        // Abranda a física e o tempo do Phaser
+        // Slow down Phaser's physics and time
         this.physics.world.timeScale = 1 / SLOW;
         this.time.timeScale = SLOW;
         if (this.gameMusic) this.gameMusic.setRate(SLOW);
 
-        // Overlay laranja aparece gradualmente
+        // Orange overlay fades in
         this.tweens.add({ targets: this._deadeyeOverlay, alpha: 0.22, duration: 300 });
 
-        // Mostra e anima a barra de tempo
+        // Show and animate the timer bar
         this._deadeyeBarBg.setVisible(true);
         this._deadeyeBar.setVisible(true).setScale(1, 1);
         this.tweens.add({
@@ -274,33 +274,33 @@ export default class GameScene extends Phaser.Scene {
             ease: 'Linear'
         });
 
-        // Controlo manual da barra via tempo real (para não ser afetado pelo timeScale)
+        // Manually drive the bar using real elapsed time (so it's unaffected by timeScale)
         this._deadeyeStart = this.time.now;
         this._deadeyeBarBg.setVisible(true);
         this._deadeyeBar.setVisible(true);
         this.tweens.killTweensOf(this._deadeyeBar);
 
-        // Marca o instante de fim em tempo real
+        // Mark the real-time end instant
         this._deadeyeEndAt = Date.now() + DURATION;
 
-        // Pulso no ícone do deadeye enquanto está ativo
+        // Pulse the deadeye icon while it's active
         this.tweens.add({ targets: this._deadeyeIcon, alpha: 0.4, duration: 400, yoyo: true, repeat: -1, ease: 'Sine' });
 
-        // Usa setTimeout nativo para não ser afetado pelo timeScale do Phaser
+        // Use a native setTimeout so it's unaffected by Phaser's timeScale
         this._deadeyeTimeout = setTimeout(() => this._endDeadeye(), DURATION);
     }
 
-    // Termina o efeito de deadeye e restaura velocidade normal
+    // Ends the deadeye effect and restores normal speed
     _endDeadeye() {
         if (!this._isDeadeye) return;
         this._isDeadeye = false;
 
-        // Restaura timeScale da física e do tempo
+        // Restore physics and time timeScale
         this.physics.world.timeScale = 1;
         this.time.timeScale = 1;
         if (this.gameMusic) this.gameMusic.setRate(1);
 
-        // Esconde o overlay e a barra
+        // Hide the overlay and the bar
         this.tweens.add({ targets: this._deadeyeOverlay, alpha: 0, duration: 500 });
         this._deadeyeBarBg.setVisible(false);
         this._deadeyeBar.setVisible(false);
@@ -308,12 +308,12 @@ export default class GameScene extends Phaser.Scene {
         this._deadeyeIcon.setAlpha(1);
     }
 
-    // Revive o jogador após usar a Dupla Vida
+    // Revives the player after using Double Life
     _revivePlayer() {
-        // Permite colisões novamente
+        // Allow collisions again
         this._isTransitioning = false;
 
-        // Repõe posição, cor e velocidade do jogador
+        // Reset the player's position, tint and velocity
         this.player.clearTint();
         this.player.setPosition(100, 200);
         this.player.setVelocity(0, 0);
@@ -321,10 +321,10 @@ export default class GameScene extends Phaser.Scene {
         this.player.play('playerRun', true);
         this._playerState = 'run';
 
-        // Remove todos os obstáculos do ecrã
+        // Remove all obstacles from the screen
         this.obstaculos.clear(true, true);
 
-        // Contagem decrescente antes de retomar o jogo
+        // Countdown before resuming the game
         this._isCountingDown = true;
         let count = 3;
         const countTxt = this.add.text(640, 360, String(count), {
@@ -353,7 +353,7 @@ export default class GameScene extends Phaser.Scene {
         tick();
     }
 
-    // Inicia o deslize (no chão) ou aciona queda rápida (no ar)
+    // Starts the slide (on the ground) or triggers a fast drop (in the air)
     startSlide() {
         if (this.isSliding) return;
 
@@ -361,7 +361,7 @@ export default class GameScene extends Phaser.Scene {
             this.player.body.touching.down ||
             this.player.body.blocked.down;
 
-        // No ar: cai rapidamente e agenda o deslize para quando aterrar
+        // In the air: drop fast and queue the slide for when the player lands
         if (!onGround) {
             this.player.setVelocityY(600);
             this._slideQueued = true;
@@ -372,23 +372,23 @@ export default class GameScene extends Phaser.Scene {
         this.isSliding = true;
         this._playerState = 'slide';
 
-        // Muda textura e reduz hitbox para o deslize
+        // Switch texture and shrink the hitbox for the slide
         this.player.stop();
         this.player.setTexture('playerSlide');
         this.player.body.setSize(60, 40);
         this.player.body.setOffset(18, 50);
 
-        // Termina o deslize automaticamente após 600ms
+        // End the slide automatically after 600ms
         this._slideTimer = this.time.delayedCall(600, () => {
             this.endSlide();
         });
     }
 
-    // Termina o deslize e repõe o estado normal
+    // Ends the slide and restores the normal state
     endSlide() {
         if (!this.isSliding) return;
 
-        // Cancela o timer automático se ainda estiver pendente
+        // Cancel the automatic timer if it's still pending
         if (this._slideTimer) {
             this._slideTimer.remove(false);
             this._slideTimer = null;
@@ -404,49 +404,190 @@ export default class GameScene extends Phaser.Scene {
         this._playerState = 'run';
     }
 
-    // Constrói o overlay de pausa (profundidade 20)
+    // Builds the pause overlay objects (depth 20)
     _buildPauseOverlay() {
         const g = this._pauseGroup;
 
-        // Fundo semi-transparente
+        // Semi-transparent backdrop
         const dim = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.65).setDepth(20);
 
-        // Painel central
-        const panel = this.add.rectangle(640, 360, 420, 340, 0x2a1a0a, 0.97)
+        // Central panel (taller to fit the settings button)
+        const panel = this.add.rectangle(640, 360, 420, 420, 0x2a1a0a, 0.97)
             .setStrokeStyle(3, 0xd4af37).setDepth(20);
 
-        // Título
-        const title = this.add.text(640, 250, 'Pausa', {
-            fontSize: '44px', fontStyle: 'bold',
+        // Title (also reused as the settings sub-view header)
+        this._pauseTitleText = this.add.text(640, 210, 'Pausa', {
+            fontSize: '40px', fontStyle: 'bold',
             fill: '#d4af37', stroke: '#4a260d', strokeThickness: 6
         }).setOrigin(0.5).setDepth(20);
 
-        // Botão de continuar
-        const resumeBtn = this._makePauseBtn(640, 340, 'Continuar', 0xb8860b, () => {
+        // Resume button
+        const resumeBtn = this._makePauseBtn(640, 295, 'Continuar', 0xb8860b, () => {
             if (!this._isCountingDown) this.startResumeCountdown();
         });
 
-        // Botão de sair para o menu
-        const menuBtn = this._makePauseBtn(640, 420, 'Sair', 0x8b6914, () => {
+        // Settings button (same label/style as the main menu's settings option)
+        const settingsBtn = this._makePauseBtn(640, 365, t('settings'), 0x8b6914, () => {
+            if (!this._isCountingDown) this._showPauseSettings();
+        });
+
+        // Exit to menu button
+        const menuBtn = this._makePauseBtn(640, 435, 'Sair', 0x8b6914, () => {
             if (!this._isTransitioning && !this._isCountingDown) {
                 this._hidePauseOverlay();
                 this.transitionTo('MenuScene');
             }
         });
 
-        // Texto da contagem decrescente (escondido até ser necessário)
+        this._pauseMainElements = [
+            resumeBtn.bg, resumeBtn.label,
+            settingsBtn.bg, settingsBtn.label,
+            menuBtn.bg, menuBtn.label
+        ];
+
+        // Countdown text (hidden until needed)
         this._countdownText = this.add.text(640, 360, '', {
             fontSize: '72px', fontStyle: 'bold',
             fill: '#ffffff', stroke: '#000000', strokeThickness: 8
         }).setOrigin(0.5).setDepth(25).setVisible(false);
 
-        g.addMultiple([dim, panel, title, resumeBtn.bg, resumeBtn.label,
-                       menuBtn.bg, menuBtn.label, this._countdownText]);
+        // Settings sub-view (volume / mute) — uses the same localStorage keys
+        // as SettingsScene, so the percentage is always kept in sync
+        this._buildPauseSettingsControls();
+
+        g.addMultiple([dim, panel, this._pauseTitleText, ...this._pauseMainElements,
+                       this._countdownText, ...this._pauseSettingsElements]);
 
         this._hidePauseOverlay();
     }
 
-    // Cria um botão estilizado para o overlay de pausa
+    // Pause menu settings sub-view: volume slider + mute button,
+    // always synced with the tp2_volume / tp2_muted keys used by SettingsScene
+    _buildPauseSettingsControls() {
+        const sliderStartX = 520;
+        const sliderWidth = 240;
+        const sliderY = 310;
+
+        this._pauseSliderStartX = sliderStartX;
+        this._pauseSliderWidth = sliderWidth;
+
+        const volumeLabel = this.add.text(640, 268, t('volume'), {
+            fontSize: '20px', fill: '#f5deb3'
+        }).setOrigin(0.5).setDepth(20);
+
+        const sliderBg = this.add.rectangle(sliderStartX, sliderY, sliderWidth, 10, 0x3d2414)
+            .setOrigin(0, 0.5).setDepth(20);
+
+        const cur = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
+
+        const sliderFill = this.add.rectangle(sliderStartX, sliderY, sliderWidth * cur, 10, 0xd4af37)
+            .setOrigin(0, 0.5).setDepth(20);
+
+        const sliderKnob = this.add.circle(sliderStartX + (sliderWidth * cur), sliderY, 12, 0xffffff)
+            .setInteractive({ useHandCursor: true })
+            .setStrokeStyle(2, 0x8b4513)
+            .setDepth(21);
+
+        const valueText = this.add.text(640, 345, Math.round(cur * 100) + '%', {
+            fontSize: '18px', fill: '#f5deb3'
+        }).setOrigin(0.5).setDepth(20);
+
+        this._pauseIsMuted = localStorage.getItem('tp2_muted') === 'true';
+
+        const muteBtn = this.add.rectangle(640, 400, 48, 48, this._pauseIsMuted ? 0xff4444 : 0x44ff44)
+            .setInteractive({ useHandCursor: true })
+            .setStrokeStyle(2, 0xd4af37)
+            .setDepth(20);
+        const muteIcon = this.add.text(640, 400, this._pauseIsMuted ? 'X' : '♪', {
+            fontSize: '24px', fill: '#fff'
+        }).setOrigin(0.5).setDepth(21);
+
+        const backBtn = this.add.text(640, 470, t('close'), {
+            fontSize: '20px', fill: '#fff',
+            backgroundColor: '#8b4513', padding: { x: 18, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(20);
+
+        this._pauseSliderFill = sliderFill;
+        this._pauseSliderKnob = sliderKnob;
+        this._pauseValueText = valueText;
+        this._pauseMuteBtn = muteBtn;
+        this._pauseMuteIcon = muteIcon;
+
+        this._pauseSettingsElements = [
+            volumeLabel, sliderBg, sliderFill, sliderKnob,
+            valueText, muteBtn, muteIcon, backBtn
+        ];
+
+        sliderKnob.on('pointerdown', () => { this._pauseVolDragging = true; });
+
+        this.input.on('pointermove', (pointer) => {
+            if (this._pauseVolDragging) {
+                const minX = this._pauseSliderStartX;
+                const maxX = this._pauseSliderStartX + this._pauseSliderWidth;
+                const newX = Math.max(minX, Math.min(maxX, pointer.x));
+                const v = (newX - minX) / this._pauseSliderWidth;
+                this._updatePauseVolume(v);
+            }
+        });
+
+        this.input.on('pointerup', () => { this._pauseVolDragging = false; });
+
+        muteBtn.on('pointerdown', () => {
+            this._pauseIsMuted = !this._pauseIsMuted;
+            try { localStorage.setItem('tp2_muted', String(this._pauseIsMuted)); } catch (e) {}
+            this._pauseMuteBtn.setFillStyle(this._pauseIsMuted ? 0xff4444 : 0x44ff44);
+            this._pauseMuteIcon.setText(this._pauseIsMuted ? 'X' : '♪');
+            const currentV = (this._pauseSliderKnob.x - this._pauseSliderStartX) / this._pauseSliderWidth;
+            this._updatePauseVolume(currentV);
+        });
+
+        backBtn.on('pointerdown', () => this._hidePauseSettings());
+    }
+
+    // Updates the slider visuals + localStorage, just like SettingsScene,
+    // so the displayed percentage always matches on both screens
+    _updatePauseVolume(v) {
+        const actualVolume = this._pauseIsMuted ? 0 : v;
+
+        this._pauseValueText.setText(this._pauseIsMuted ? t('muted') : Math.round(v * 100) + '%');
+        this._pauseSliderFill.width = this._pauseSliderWidth * v;
+        this._pauseSliderKnob.x = this._pauseSliderStartX + (this._pauseSliderWidth * v);
+
+        try { localStorage.setItem('tp2_volume', String(v)); } catch (e) {}
+
+        // Immediately sync already-loaded sounds (game music stays at 0 while
+        // paused and picks up the new value when the resume countdown finishes)
+        this.sound.sounds.forEach(s => {
+            try {
+                if (s === this.gameMusic) return; // handled by the resume countdown
+                if (s.setVolume) s.setVolume(actualVolume);
+                else s.volume = actualVolume;
+            } catch (e) {}
+        });
+    }
+
+    _showPauseSettings() {
+        this._pauseMainElements.forEach(o => o.setVisible(false));
+        this._pauseTitleText.setText(t('settings'));
+
+        // Re-read from localStorage in case it changed elsewhere
+        // (e.g. the main menu's SettingsScene), to guarantee consistency
+        const vol = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
+        this._pauseIsMuted = localStorage.getItem('tp2_muted') === 'true';
+        this._pauseMuteBtn.setFillStyle(this._pauseIsMuted ? 0xff4444 : 0x44ff44);
+        this._pauseMuteIcon.setText(this._pauseIsMuted ? 'X' : '♪');
+        this._updatePauseVolume(vol);
+
+        this._pauseSettingsElements.forEach(o => o.setVisible(true));
+    }
+
+    _hidePauseSettings() {
+        this._pauseSettingsElements.forEach(o => o.setVisible(false));
+        this._pauseTitleText.setText('Pausa');
+        this._pauseMainElements.forEach(o => o.setVisible(true));
+    }
+
+    // Creates a styled button for the pause overlay
     _makePauseBtn(x, y, label, color, cb) {
         const bg = this.add.rectangle(x, y, 280, 58, color)
             .setInteractive({ useHandCursor: true })
@@ -457,7 +598,7 @@ export default class GameScene extends Phaser.Scene {
             fontSize: '22px', fill: '#fff', fontStyle: 'bold'
         }).setOrigin(0.5).setDepth(21);
 
-        // Função auxiliar para escurecer a cor ao passar o rato por cima
+        // Helper to darken the color on hover
         const darker = (c, amt) => {
             const r = Math.max(0, ((c >> 16) & 0xff) - amt);
             const g = Math.max(0, ((c >> 8)  & 0xff) - amt);
@@ -478,19 +619,22 @@ export default class GameScene extends Phaser.Scene {
         return { bg, label: lbl };
     }
 
-    // Mostra o overlay de pausa
+    // Shows the pause overlay
     _showPauseOverlay() {
         this._pauseGroup.getChildren().forEach(c => {
             if (c !== this._countdownText) c.setVisible(true);
         });
+        // Always reopen on the main pause view, never on the settings sub-view
+        this._pauseTitleText.setText('Pausa');
+        this._pauseSettingsElements.forEach(o => o.setVisible(false));
     }
 
-    // Esconde o overlay de pausa
+    // Hides the pause overlay
     _hidePauseOverlay() {
         this._pauseGroup.getChildren().forEach(c => c.setVisible(false));
     }
 
-    // Alterna entre pausado e a jogar
+    // Toggles between paused and playing
     togglePause() {
         if (this._isTransitioning || this._isCountingDown) return;
 
@@ -508,12 +652,12 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    // Contagem 3-2-1 antes de retomar o jogo após pausa
+    // 3-2-1 countdown before resuming after a pause
     startResumeCountdown() {
         if (this._isCountingDown) return;
         this._isCountingDown = true;
 
-        // Esconde tudo menos o fundo e o texto de contagem
+        // Hide everything except the backdrop and the countdown text
         this._pauseGroup.getChildren().forEach(c => {
             if (c !== this._countdownText) c.setVisible(false);
         });
@@ -526,7 +670,7 @@ export default class GameScene extends Phaser.Scene {
         let count = 3;
         const showCount = () => {
             if (count <= 0) {
-                // Contagem acabou — retoma o jogo
+                // Countdown finished — resume the game
                 this._countdownText.setVisible(false);
                 if (dim) dim.setAlpha(0.65);
                 this._isCountingDown = false;
@@ -543,7 +687,7 @@ export default class GameScene extends Phaser.Scene {
                 return;
             }
 
-            // Anima cada número da contagem
+            // Animate each countdown number
             this._countdownText.setText(String(count));
             this._countdownText.setScale(1.4);
             this._countdownText.setAlpha(1);
@@ -564,54 +708,54 @@ export default class GameScene extends Phaser.Scene {
         showCount();
     }
 
-    // Loop principal do jogo (chamado a cada frame)
+    // Main game loop (called every frame)
     update() {
 
-        // Verifica input de deslize (S ou Seta Baixo)
+        // Check slide input (S or Down Arrow)
         if (Phaser.Input.Keyboard.JustDown(this.slideKey) || Phaser.Input.Keyboard.JustDown(this.downKey)) {
             this.startSlide();
         }
 
-        // Para o update se o jogo estiver pausado ou em contagem
+        // Stop updating if the game is paused or counting down
         if (this._isPaused || this._isCountingDown) return;
 
-        // Atualiza a barra de tempo do deadeye em tempo real
+        // Update the deadeye timer bar in real time
         if (this._isDeadeye && this._deadeyeEndAt) {
             const remaining = Math.max(0, this._deadeyeEndAt - Date.now());
             const pct = remaining / 8000;
             this._deadeyeBar.setScale(pct, 1);
         }
 
-        // Dificuldade progressiva
-        // Acelera gradualmente até ao teto atual
+        // Progressive difficulty
+        // Gradually accelerates up to the current cap
         if (this.velocidadeJogo < this.velocidadeMaxima) {
             this.velocidadeJogo += this.aceleracao;
         }
 
-        // A cada 1000 pontos: aumenta o teto de velocidade e a aceleração
-        const scoreTier = Math.floor(this.score / 10000); // score interno é x10
+        // Every 1000 points: raise the speed cap and the acceleration
+        const scoreTier = Math.floor(this.score / 800); // internal score is x10
         this.velocidadeMaxima = Math.min(1400, 800 + scoreTier * 60);
         this.aceleracao = Math.min(0.2, 0.05 + scoreTier * 0.01);
 
-        // Mostra frase de aceleração quando sobe de nível
+        // Show the speed-up quote when leveling up
         if (scoreTier > this._lastScoreTier) {
             this._lastScoreTier = scoreTier;
             this._showSpeedQuote();
         }
 
-        // Atualiza o fundo parallax com a velocidade atual
+        // Update the parallax background with the current speed
         this._parallax.update(this.velocidadeJogo);
 
-        // Input do jogador
+        // Player input
         const onGround = this.player.body.touching.down || this.player.body.blocked.down;
 
-        // Executa deslize agendado assim que o jogador aterra
+        // Run the queued slide as soon as the player lands
         if (onGround && this._slideQueued) {
             this._slideQueued = false;
             this.startSlide();
         }
 
-        // Salto: cancela deslize se estiver a deslizar, depois salta
+        // Jump: cancel the slide if currently sliding, then jump
         if (Phaser.Input.Keyboard.JustDown(this.teclas.up) || Phaser.Input.Keyboard.JustDown(this.teclas.space)) {
             if (onGround || this.isSliding) {
                 if (this.isSliding) {
@@ -622,13 +766,13 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Texto de debug (estado, chão, velocidade vertical)
+        // Debug text (state, ground, vertical velocity)
         //this.debugText.setText(`State: ${this._playerState} | onGround: ${onGround} | velY: ${Math.round(this.player.body.velocity.y)}`);
 
-        // Máquina de estados da animação do jogador
+        // Player animation state machine
         if (!this.isSliding) {
             if (onGround) {
-                // No chão → animação de corrida
+                // On the ground → run animation
                 if (this._playerState !== 'run') {
                     this._playerState = 'run';
                     this.player.stop();
@@ -636,7 +780,7 @@ export default class GameScene extends Phaser.Scene {
                     this.player.play('playerRun', true);
                 }
             } else if (this.player.body.velocity.y < -1) {
-                // A subir → sprite de salto (subida)
+                // Going up → jump-up sprite
                 if (this._playerState !== 'jumpUp') {
                     this._playerState = 'jumpUp';
                     this.player.stop();
@@ -644,7 +788,7 @@ export default class GameScene extends Phaser.Scene {
                     this.player.setScale(0.9);
                 }
             } else if (this.player.body.velocity.y > 1) {
-                // A descer → sprite de salto (descida)
+                // Going down → jump-down sprite
                 if (this._playerState !== 'jumpDown') {
                     this._playerState = 'jumpDown';
                     this.player.stop();
@@ -654,11 +798,11 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Pontuação
+        // Score
         this.score += 1;
         this.scoreText.setText(`${t('score')}: ${Math.floor(this.score / 10)}`);
 
-        // Move e limpa obstáculos fora do ecrã
+        // Move and clean up off-screen obstacles
         this.obstaculos.getChildren().forEach(obstaculo => {
             obstaculo.setVelocityX(-this.velocidadeJogo);
             if (obstaculo.x < -50) {
@@ -666,7 +810,7 @@ export default class GameScene extends Phaser.Scene {
             }
         });
 
-        // Move e limpa moedas fora do ecrã
+        // Move and clean up off-screen coins
         this.coins.getChildren().forEach(coin => {
             coin.setVelocityX(-this.velocidadeJogo);
             coin.angle += 0;
@@ -676,13 +820,13 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-    // Mostra uma frase de aceleração ao centro do ecrã
+    // Shows a speed-up quote at the center of the screen
     _showSpeedQuote() {
         const quotes = t('speedQuotes');
         const quote = quotes[Phaser.Math.Between(0, quotes.length - 1)];
         this._speedQuoteText.setText(quote).setAlpha(1);
 
-        // Faz a frase desaparecer gradualmente após 1.4 segundos
+        // Gradually fade the quote out after 1.4 seconds
         this.tweens.killTweensOf(this._speedQuoteText);
         this.tweens.add({
             targets: this._speedQuoteText,
@@ -693,7 +837,7 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-    // Inicia a música de jogo com o volume guardado
+    // Starts the game music with the saved volume
     startGameMusic() {
         const isMuted = localStorage.getItem('tp2_muted') === 'true';
         const volume = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
@@ -706,8 +850,6 @@ export default class GameScene extends Phaser.Scene {
         this.coinCollectSound = this.sound.add('coinCollectSound', { volume: coinVolume });
     }
 
-    // Calcula o bounding box dos píxeis opacos de uma textura
-    // Usado para definir hitboxes automáticas com base no conteúdo real da imagem
     getOpaqueBounds(textureKey) {
         const src = this.textures.get(textureKey).getSourceImage();
         const cvs = document.createElement('canvas');
@@ -720,7 +862,7 @@ export default class GameScene extends Phaser.Scene {
         let minX = width, maxX = 0, minY = height, maxY = 0;
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
-                // Ignora píxeis quase transparentes (alpha ≤ 10)
+                // Ignore near-transparent pixels (alpha ≤ 10)
                 const alpha = data[(y * width + x) * 4 + 3];
                 if (alpha > 10) {
                     if (x < minX) minX = x;
@@ -731,58 +873,57 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Fallback para imagem inteira se for totalmente transparente
         if (minX > maxX || minY > maxY) {
             return { x: 0, y: 0, w: width, h: height };
         }
         return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
     }
 
-    // Cria um obstáculo aleatório (cacto ou pássaro)
+    // Creates a random obstacle (cactus or bird)
     criarObstaculo() {
         if (this._isTransitioning) return;
         const obstacleType = Phaser.Math.Between(0, 1) === 0 ? 'cactus' : 'bird';
 
         if (obstacleType === 'cactus') {
-            // Escolhe uma das 4 variantes de cacto aleatoriamente
+
             const variant = Phaser.Math.Between(1, 4);
-            const obstaculo = this.obstaculos.create(1350, 600, `cactus${variant}`);
+
+            const obstaculo = this.obstaculos.create(1350, 590, `cactus${variant}`);
             obstaculo.setScale(1);
             obstaculo.body.setAllowGravity(false);
             obstaculo.body.setImmovable(true);
 
-            // Hitbox calculada automaticamente com base nos píxeis opacos
-            // Largura reduzida para 60% para ser mais justo com o jogador
             const bounds = this.getOpaqueBounds(`cactus${variant}`);
             const hitW = Math.round(bounds.w * 0.6);
             const hitX = bounds.x + Math.round((bounds.w - hitW) / 2);
             obstaculo.body.setSize(hitW, bounds.h);
             obstaculo.body.setOffset(hitX, bounds.y);
         } else {
-            // Pássaro — aparece a uma altura que obriga a deslizar
             const BIRD_Y = Phaser.Math.Between(560, 570);
             const obstaculo = this.obstaculos.create(1350, BIRD_Y, 'bird1');
             obstaculo.setScale(1.5);
             obstaculo.play('birdFly');
             obstaculo.body.setAllowGravity(false);
             obstaculo.body.setImmovable(true);
-            obstaculo.body.setSize(32, 24);
-            obstaculo.body.setOffset(0, 4);
+
+            const bounds = this.getOpaqueBounds('bird1');
+            obstaculo.body.setSize(bounds.w, bounds.h);
+            obstaculo.body.setOffset(bounds.x, bounds.y);
         }
 
         this.agendarProximoObstaculo();
     }
 
-    // Agenda o próximo obstáculo com delay que diminui com o score
+    // Schedules the next obstacle with a delay that shrinks as the score grows
     agendarProximoObstaculo() {
-        const scoreTier = Math.floor(this.score / 10000);
+        const scoreTier = Math.floor(this.score / 800);
         const minDelay = Math.max(350, 1000 - scoreTier * 100);
         const maxDelay = Math.max(700, 3000 - scoreTier * 200);
         const randomDelay = Phaser.Math.Between(minDelay, maxDelay);
         this.time.delayedCall(randomDelay, () => this.criarObstaculo(), [], this);
     }
 
-    // Cria uma moeda numa posição aleatória com animação flutuante
+    // Creates a coin at a random position with a floating animation
     criarMoeda() {
         if (this._isTransitioning) return;
 
@@ -794,7 +935,7 @@ export default class GameScene extends Phaser.Scene {
         coin.body.setSize(14, 14);
         coin.body.setOffset(1, 1);
 
-        // Animação de flutuação (sobe e desce em loop)
+        // Floating animation (loops up and down)
         this.tweens.add({
             targets: coin,
             y: y - 18,
@@ -807,13 +948,13 @@ export default class GameScene extends Phaser.Scene {
         this.agendarProximaMoeda();
     }
 
-    // Agenda a próxima moeda com delay aleatório
+    // Schedules the next coin with a random delay
     agendarProximaMoeda() {
         const randomDelay = Phaser.Math.Between(1200, 2600);
         this.time.delayedCall(randomDelay, this.criarMoeda, [], this);
     }
 
-    // Recolha de moeda pelo jogador
+    // Coin pickup by the player
     collectCoin(player, coin) {
         this.tweens.killTweensOf(coin);
         coin.destroy();
@@ -824,18 +965,18 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    // Game Over: verifica dupla vida ou transita para o ecrã de fim
+    // Game Over: checks for Double Life or transitions to the game-over screen
     gameOver() {
         if (this._isTransitioning || this._isPaused || this._isCountingDown) return;
 
-        // Se tiver dupla vida disponível, revive o jogador
+        // If Double Life is available, revive the player
         if (this._doubleLifeCount > 0 && !this._doubleLifeUsed) {
             this._doubleLifeUsed = true;
             this._doubleLifeCount--;
             localStorage.setItem('tp2_doublelife_count', String(this._doubleLifeCount));
             this._doubleLifeCountText.setText(`x${this._doubleLifeCount}`);
 
-            // Termina o deadeye se estiver ativo
+            // End deadeye if it's active
             if (this._isDeadeye) {
                 clearTimeout(this._deadeyeTimeout);
                 this._endDeadeye();
@@ -845,37 +986,41 @@ export default class GameScene extends Phaser.Scene {
             return;
         }
 
-        // Sem dupla vida: pausa tudo e vai para GameOver
+        // No Double Life left: pause everything and go to GameOver
         this._isTransitioning = true;
         this.physics.pause();
         if (this.gameMusic && this.gameMusic.isPlaying) {
             this.gameMusic.stop();
         }
 
-        // Limpa o deadeye antes de sair
+        // Clean up deadeye before leaving
         if (this._isDeadeye) {
             clearTimeout(this._deadeyeTimeout);
             this._endDeadeye();
         }
 
-        // Tinge o jogador de vermelho e transita para a cena de Game Over
+        // Tint the player red and transition to the Game Over scene
         this.player.setTint(0xff0000);
         this.transitionTo('GameOverScene', { score: Math.floor(this.score / 10), coins: this.coinsCollected });
     }
 
-    // Limpeza quando a cena é destruída
+    // Cleanup when the scene is destroyed
     shutdown() {
         if (this._deadeyeTimeout) clearTimeout(this._deadeyeTimeout);
-        // Restaura timeScales para não afetar outras cenas
+        // Restore timeScales so other scenes aren't affected
         this.physics.world.timeScale = 1;
         this.time.timeScale = 1;
+        // Stop the music when the scene is destroyed
+        if (this.gameMusic && this.gameMusic.isPlaying) {
+            this.gameMusic.stop();
+        }
     }
 
-    // Transição suave para outra cena com fade e fade de áudio
+    // Smooth transition to another scene with fade and audio fade
     transitionTo(targetScene, data) {
         const dur = 400;
 
-        // Fade out de todos os sons ativos
+        // Fade out all active sounds
         this.sound.sounds.forEach(s => {
             try {
                 if (!s) return;
@@ -886,14 +1031,14 @@ export default class GameScene extends Phaser.Scene {
             } catch (e) {}
         });
 
-        // Fade out da câmara e inicia a próxima cena
+        // Fade out the camera and start the next scene
         this.cameras.main.fadeOut(dur, 0, 0, 0);
         let fired = false;
         this.cameras.main.once('camerafadeoutcomplete', () => {
             fired = true;
             this.scene.start(targetScene, data);
         });
-        // Fallback caso o evento de câmara não dispare
+        // Fallback in case the camera event doesn't fire
         this.time.delayedCall(dur + 200, () => { if (!fired) this.scene.start(targetScene, data); });
     }
 }
