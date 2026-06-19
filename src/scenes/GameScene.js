@@ -8,7 +8,6 @@ export default class GameScene extends Phaser.Scene {
         super('GameScene');
     }
 
-    // Preload assets (images, sounds, spritesheets)
     preload() {
         this._parallax = new ParallaxManager(this);
         this._parallax.preload();
@@ -20,7 +19,7 @@ export default class GameScene extends Phaser.Scene {
                 frameHeight: 96
             });
         }
-        // Jump images (going up and coming down)
+        // Jump images
         if (!this.textures.exists('playerJumpUp')) {
             this.load.image('playerJumpUp', 'assets/images/Sprite-jump.png');
         }
