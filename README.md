@@ -27,6 +27,8 @@
 ### **Jogabilidade / Controlos:**
 * **Jump (Saltar):** Tecla `W` ou `Seta para cima`
 * **Slide (Deslizar):** Tecla `S` ou `Seta para baixo`
+* **Usar item Deadeye (Deslizar):** Tecla `F`
+
 
 # **Github Pages**
 * https://danielsousa123.github.io/TP2-TECMUL/
