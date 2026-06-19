@@ -22,14 +22,15 @@ export default class ParallaxManager {
     }
 
     
-    update(speed) {
-        const delta = speed * 0.01;
+    update(speed, deltaMs) {
+        const deltaS = (deltaMs || 16.67) / 1000;
 
-        // Background moves slower
-        this.layers[0].tilePositionX += delta * 0.15;
+        // Background moves slower (15% of game speed)
+        this.layers[0].tilePositionX += speed * deltaS * 0.15;
 
+        // Ground matches obstacle speed exactly
         if (this.ground) {
-            this.ground.tilePositionX += delta * 3.0;
+            this.ground.tilePositionX += speed * deltaS;
         }
     }
 

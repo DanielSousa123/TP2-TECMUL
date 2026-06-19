@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { t } from '../traducao.js';
 import ParallaxManager from './ParallaxManager.js';
+import PauseMenu from './PauseMenu.js';
 
 export default class GameScene extends Phaser.Scene {
     constructor() {
@@ -57,6 +58,9 @@ export default class GameScene extends Phaser.Scene {
         if (!this.textures.exists('health_potion')) {
             this.load.image('health_potion', 'assets/images/health_potion.png');
         }
+        if (!this.textures.exists('morgans_hat')) {
+            this.load.image('morgans_hat', 'assets/images/hat.png');
+        }
 
         // Coin spritesheet
         this.load.spritesheet('coin', 'assets/images/coin.png', {
@@ -65,17 +69,24 @@ export default class GameScene extends Phaser.Scene {
         });
     }
 
-    // Scene initialization
     create() {
 
-        // Slide and deadeye keys
         this.slideKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
         this.downKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN);
         this.deadeyeKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F);
 
-        // Item inventory (loaded from localStorage)
         this._deadeyeCount = parseInt(localStorage.getItem('tp2_deadeye_count')) || 0;
         this._doubleLifeCount = parseInt(localStorage.getItem('tp2_doublelife_count')) || 0;
+        this._morgansHatCount = parseInt(localStorage.getItem('tp2_morganshat_count')) || 0;
+        this._morgansHatActive = false;
+
+        // Consume one Morgan's Hat use at the start of the game
+        if (this._morgansHatCount > 0) {
+            this._morgansHatActive = true;
+            this._morgansHatCount--;
+            localStorage.setItem('tp2_morganshat_count', String(this._morgansHatCount));
+        }
+
         this._isDeadeye = false;
         this._doubleLifeUsed = false;
 
@@ -112,14 +123,14 @@ export default class GameScene extends Phaser.Scene {
         // Initial game state
         this._isTransitioning = false;
         this.isSliding = false;
-        this._slideQueued = false; // slide scheduled for when the player lands
+        this._slideQueued = false; 
         this._isPaused = false;
         this.time.paused = false;
         this.physics.resume();
         this._isCountingDown = false;
-        this.velocidadeJogo = 300;    // current obstacle speed
-        this.velocidadeMaxima = 800;  // speed cap (grows with score)
-        this.aceleracao = 0.05;       // speed increment per frame
+        this.velocidadeJogo = 300;    
+        this.velocidadeMaxima = 800;  
+        this.aceleracao = 0.05;       
         this.score = 0;
         this.coinsCollected = 0;
         this._playerState = 'run';
@@ -128,9 +139,21 @@ export default class GameScene extends Phaser.Scene {
         this._parallax.create();
         this.chao = this._parallax.getGround();
 
-        // HUD texts (score and coins)
-        this.scoreText = this.add.text(640, 16, `${t('score')}: 0`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5, 0);
-        this.coinText = this.add.text(640, 48, `${t('coins')}: 0`, { fontSize: '24px', fill: '#fff' }).setOrigin(0.5, 0);
+        // Procedural coin texture (fallback in case the spritesheet fails;
+        // also used as the coin icon in the score HUD below)
+        if (!this.textures.exists('texturaMoeda')) {
+            const coinCanvas = this.make.graphics({ x: 0, y: 0, add: false });
+            coinCanvas.fillStyle(0xffd34d);
+            coinCanvas.fillCircle(16, 16, 15);
+            coinCanvas.lineStyle(3, 0xb87900);
+            coinCanvas.strokeCircle(16, 16, 14);
+            coinCanvas.lineStyle(2, 0xfff3a0);
+            coinCanvas.strokeCircle(16, 16, 8);
+            coinCanvas.generateTexture('texturaMoeda', 32, 32);
+        }
+
+        // HUD (score and coins, top-left)
+        this._buildScoreHUD();
         //this.debugText = this.add.text(100, 16, 'Debug', { fontSize: '16px', fill: '#0f0' }).setOrigin(0, 0);
 
         // Speed-up quote — appears center screen when the game speeds up
@@ -165,18 +188,6 @@ export default class GameScene extends Phaser.Scene {
         this.obstaculos = this.physics.add.group();
         this.coins = this.physics.add.group();
 
-        // Procedural coin texture (fallback in case the spritesheet fails)
-        if (!this.textures.exists('texturaMoeda')) {
-            const coinCanvas = this.make.graphics({ x: 0, y: 0, add: false });
-            coinCanvas.fillStyle(0xffd34d);
-            coinCanvas.fillCircle(16, 16, 15);
-            coinCanvas.lineStyle(3, 0xb87900);
-            coinCanvas.strokeCircle(16, 16, 14);
-            coinCanvas.lineStyle(2, 0xfff3a0);
-            coinCanvas.strokeCircle(16, 16, 8);
-            coinCanvas.generateTexture('texturaMoeda', 32, 32);
-        }
-
         // Initial scheduling of obstacles and coins
         this.agendarProximoObstaculo();
         this.agendarProximaMoeda();
@@ -195,15 +206,15 @@ export default class GameScene extends Phaser.Scene {
 
         this.pauseBtn.on('pointerover', () => this.pauseBtn.setAlpha(0.7));
         this.pauseBtn.on('pointerout',  () => this.pauseBtn.setAlpha(1));
-        this.pauseBtn.on('pointerdown', () => this.togglePause());
+        this.pauseBtn.on('pointerdown', () => this._pauseMenu.toggle());
 
         // ESC or P to pause
-        this.input.keyboard.on('keydown-ESC', () => this.togglePause());
-        this.input.keyboard.on('keydown-P',   () => this.togglePause());
+        this.input.keyboard.on('keydown-ESC', () => this._pauseMenu.toggle());
+        this.input.keyboard.on('keydown-P',   () => this._pauseMenu.toggle());
 
-        // Pause overlay (starts hidden)
-        this._pauseGroup = this.add.group();
-        this._buildPauseOverlay();
+        // Pause menu (overlay, settings sub-view, resume countdown)
+        this._pauseMenu = new PauseMenu(this);
+        this._pauseMenu.build();
 
         // Fade in
         this.cameras.main.fadeIn(400);
@@ -213,6 +224,58 @@ export default class GameScene extends Phaser.Scene {
 
         // F key activates deadeye
         this.input.keyboard.on('keydown-F', () => this._activateDeadeye());
+    }
+
+    // Builds the score/coins HUD in the top-left corner: a parchment-style
+    // panel with an icon + value for each stat, matching the game's wood/gold
+    // aesthetic instead of plain white text.
+    _buildScoreHUD() {
+        const panelX = 20;
+        const panelY = 16;
+        const panelW = 220;
+        const rowH = 50;            // height reserved for each stat row
+        const panelH = rowH * 2;    // panel height derived from the rows, so nothing overflows
+
+        // Backing panel
+        this._scorePanel = this.add.rectangle(panelX, panelY, panelW, panelH, 0x2a1a0a, 0.78)
+            .setOrigin(0, 0)
+            .setStrokeStyle(2, 0xd4af37, 0.9)
+            .setDepth(9);
+
+        // Subtle inner divider between the two rows
+        this.add.rectangle(panelX + 14, panelY + rowH, panelW - 28, 1, 0xd4af37, 0.35)
+            .setOrigin(0, 0.5)
+            .setDepth(9);
+
+        // Each row's vertical center (icon, label and value all align to this)
+        const row1CenterY = panelY + rowH / 2;
+        const row2CenterY = panelY + rowH + rowH / 2;
+        const iconX = panelX + 30;
+        const textX = panelX + 56;
+
+        // Score row: trophy icon + label + value
+        this.add.text(iconX, row1CenterY, '🏆', { fontSize: '24px' })
+            .setOrigin(0.5).setDepth(10);
+        this.add.text(textX, row1CenterY - 14, t('score').toUpperCase(), {
+            fontSize: '12px', fontStyle: 'bold', fill: '#d2b48c', letterSpacing: 1
+        }).setOrigin(0, 0.5).setDepth(10);
+        this.scoreText = this.add.text(textX, row1CenterY + 8, '0', {
+            fontSize: '22px', fontStyle: 'bold',
+            fill: '#ffd966', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0, 0.5).setDepth(10);
+
+        // Coins row: coin icon (game's own coin texture, not an emoji glyph,
+        // so it can't get clipped by font metrics) + label + value
+        this.add.image(iconX, row2CenterY, 'texturaMoeda')
+            .setDisplaySize(26, 26)
+            .setDepth(10);
+        this.add.text(textX, row2CenterY - 14, t('coins').toUpperCase(), {
+            fontSize: '12px', fontStyle: 'bold', fill: '#d2b48c', letterSpacing: 1
+        }).setOrigin(0, 0.5).setDepth(10);
+        this.coinText = this.add.text(textX, row2CenterY + 8, '0', {
+            fontSize: '22px', fontStyle: 'bold',
+            fill: '#ffd966', stroke: '#000000', strokeThickness: 3
+        }).setOrigin(0, 0.5).setDepth(10);
     }
 
     // Builds the item HUD in the bottom-left corner
@@ -233,6 +296,15 @@ export default class GameScene extends Phaser.Scene {
         this._doubleLifeCountText = this.add.text(158, 660, `x${this._doubleLifeCount}`, {
             fontSize: '18px', fill: '#ffd966', stroke: '#000', strokeThickness: 3
         }).setOrigin(0, 0.5).setDepth(5);
+
+        // Morgan's Hat icon (passive bonus indicator)
+        if (this._morgansHatActive) {
+            this._morgansHatIcon = this.add.image(220, 660, 'morgans_hat').setDepth(5);
+            this._morgansHatIcon.setDisplaySize(40, 40);
+            this.add.text(220, 688, '2x', {
+                fontSize: '12px', fill: '#ffd966', stroke: '#000', strokeThickness: 2
+            }).setOrigin(0.5).setDepth(5);
+        }
 
         // Deadeye timer bar (hidden until activated)
         this._deadeyeBarBg = this.add.rectangle(40, 710, 100, 8, 0x333333).setOrigin(0, 0.5).setDepth(5).setVisible(false);
@@ -404,312 +476,8 @@ export default class GameScene extends Phaser.Scene {
         this._playerState = 'run';
     }
 
-    // Builds the pause overlay objects (depth 20)
-    _buildPauseOverlay() {
-        const g = this._pauseGroup;
-
-        // Semi-transparent backdrop
-        const dim = this.add.rectangle(640, 360, 1280, 720, 0x000000, 0.65).setDepth(20);
-
-        // Central panel (taller to fit the settings button)
-        const panel = this.add.rectangle(640, 360, 420, 420, 0x2a1a0a, 0.97)
-            .setStrokeStyle(3, 0xd4af37).setDepth(20);
-
-        // Title (also reused as the settings sub-view header)
-        this._pauseTitleText = this.add.text(640, 210, 'Pausa', {
-            fontSize: '40px', fontStyle: 'bold',
-            fill: '#d4af37', stroke: '#4a260d', strokeThickness: 6
-        }).setOrigin(0.5).setDepth(20);
-
-        // Resume button
-        const resumeBtn = this._makePauseBtn(640, 295, 'Continuar', 0xb8860b, () => {
-            if (!this._isCountingDown) this.startResumeCountdown();
-        });
-
-        // Settings button (same label/style as the main menu's settings option)
-        const settingsBtn = this._makePauseBtn(640, 365, t('settings'), 0x8b6914, () => {
-            if (!this._isCountingDown) this._showPauseSettings();
-        });
-
-        // Exit to menu button
-        const menuBtn = this._makePauseBtn(640, 435, 'Sair', 0x8b6914, () => {
-            if (!this._isTransitioning && !this._isCountingDown) {
-                this._hidePauseOverlay();
-                this.transitionTo('MenuScene');
-            }
-        });
-
-        this._pauseMainElements = [
-            resumeBtn.bg, resumeBtn.label,
-            settingsBtn.bg, settingsBtn.label,
-            menuBtn.bg, menuBtn.label
-        ];
-
-        // Countdown text (hidden until needed)
-        this._countdownText = this.add.text(640, 360, '', {
-            fontSize: '72px', fontStyle: 'bold',
-            fill: '#ffffff', stroke: '#000000', strokeThickness: 8
-        }).setOrigin(0.5).setDepth(25).setVisible(false);
-
-        // Settings sub-view (volume / mute) — uses the same localStorage keys
-        // as SettingsScene, so the percentage is always kept in sync
-        this._buildPauseSettingsControls();
-
-        g.addMultiple([dim, panel, this._pauseTitleText, ...this._pauseMainElements,
-                       this._countdownText, ...this._pauseSettingsElements]);
-
-        this._hidePauseOverlay();
-    }
-
-    // Pause menu settings sub-view: volume slider + mute button,
-    // always synced with the tp2_volume / tp2_muted keys used by SettingsScene
-    _buildPauseSettingsControls() {
-        const sliderStartX = 520;
-        const sliderWidth = 240;
-        const sliderY = 310;
-
-        this._pauseSliderStartX = sliderStartX;
-        this._pauseSliderWidth = sliderWidth;
-
-        const volumeLabel = this.add.text(640, 268, t('volume'), {
-            fontSize: '20px', fill: '#f5deb3'
-        }).setOrigin(0.5).setDepth(20);
-
-        const sliderBg = this.add.rectangle(sliderStartX, sliderY, sliderWidth, 10, 0x3d2414)
-            .setOrigin(0, 0.5).setDepth(20);
-
-        const cur = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
-
-        const sliderFill = this.add.rectangle(sliderStartX, sliderY, sliderWidth * cur, 10, 0xd4af37)
-            .setOrigin(0, 0.5).setDepth(20);
-
-        const sliderKnob = this.add.circle(sliderStartX + (sliderWidth * cur), sliderY, 12, 0xffffff)
-            .setInteractive({ useHandCursor: true })
-            .setStrokeStyle(2, 0x8b4513)
-            .setDepth(21);
-
-        const valueText = this.add.text(640, 345, Math.round(cur * 100) + '%', {
-            fontSize: '18px', fill: '#f5deb3'
-        }).setOrigin(0.5).setDepth(20);
-
-        this._pauseIsMuted = localStorage.getItem('tp2_muted') === 'true';
-
-        const muteBtn = this.add.rectangle(640, 400, 48, 48, this._pauseIsMuted ? 0xff4444 : 0x44ff44)
-            .setInteractive({ useHandCursor: true })
-            .setStrokeStyle(2, 0xd4af37)
-            .setDepth(20);
-        const muteIcon = this.add.text(640, 400, this._pauseIsMuted ? 'X' : '♪', {
-            fontSize: '24px', fill: '#fff'
-        }).setOrigin(0.5).setDepth(21);
-
-        const backBtn = this.add.text(640, 470, t('close'), {
-            fontSize: '20px', fill: '#fff',
-            backgroundColor: '#8b4513', padding: { x: 18, y: 8 }
-        }).setOrigin(0.5).setInteractive({ useHandCursor: true }).setDepth(20);
-
-        this._pauseSliderFill = sliderFill;
-        this._pauseSliderKnob = sliderKnob;
-        this._pauseValueText = valueText;
-        this._pauseMuteBtn = muteBtn;
-        this._pauseMuteIcon = muteIcon;
-
-        this._pauseSettingsElements = [
-            volumeLabel, sliderBg, sliderFill, sliderKnob,
-            valueText, muteBtn, muteIcon, backBtn
-        ];
-
-        sliderKnob.on('pointerdown', () => { this._pauseVolDragging = true; });
-
-        this.input.on('pointermove', (pointer) => {
-            if (this._pauseVolDragging) {
-                const minX = this._pauseSliderStartX;
-                const maxX = this._pauseSliderStartX + this._pauseSliderWidth;
-                const newX = Math.max(minX, Math.min(maxX, pointer.x));
-                const v = (newX - minX) / this._pauseSliderWidth;
-                this._updatePauseVolume(v);
-            }
-        });
-
-        this.input.on('pointerup', () => { this._pauseVolDragging = false; });
-
-        muteBtn.on('pointerdown', () => {
-            this._pauseIsMuted = !this._pauseIsMuted;
-            try { localStorage.setItem('tp2_muted', String(this._pauseIsMuted)); } catch (e) {}
-            this._pauseMuteBtn.setFillStyle(this._pauseIsMuted ? 0xff4444 : 0x44ff44);
-            this._pauseMuteIcon.setText(this._pauseIsMuted ? 'X' : '♪');
-            const currentV = (this._pauseSliderKnob.x - this._pauseSliderStartX) / this._pauseSliderWidth;
-            this._updatePauseVolume(currentV);
-        });
-
-        backBtn.on('pointerdown', () => this._hidePauseSettings());
-    }
-
-    // Updates the slider visuals + localStorage, just like SettingsScene,
-    // so the displayed percentage always matches on both screens
-    _updatePauseVolume(v) {
-        const actualVolume = this._pauseIsMuted ? 0 : v;
-
-        this._pauseValueText.setText(this._pauseIsMuted ? t('muted') : Math.round(v * 100) + '%');
-        this._pauseSliderFill.width = this._pauseSliderWidth * v;
-        this._pauseSliderKnob.x = this._pauseSliderStartX + (this._pauseSliderWidth * v);
-
-        try { localStorage.setItem('tp2_volume', String(v)); } catch (e) {}
-
-        // Immediately sync already-loaded sounds (game music stays at 0 while
-        // paused and picks up the new value when the resume countdown finishes)
-        this.sound.sounds.forEach(s => {
-            try {
-                if (s === this.gameMusic) return; // handled by the resume countdown
-                if (s.setVolume) s.setVolume(actualVolume);
-                else s.volume = actualVolume;
-            } catch (e) {}
-        });
-    }
-
-    _showPauseSettings() {
-        this._pauseMainElements.forEach(o => o.setVisible(false));
-        this._pauseTitleText.setText(t('settings'));
-
-        // Re-read from localStorage in case it changed elsewhere
-        // (e.g. the main menu's SettingsScene), to guarantee consistency
-        const vol = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
-        this._pauseIsMuted = localStorage.getItem('tp2_muted') === 'true';
-        this._pauseMuteBtn.setFillStyle(this._pauseIsMuted ? 0xff4444 : 0x44ff44);
-        this._pauseMuteIcon.setText(this._pauseIsMuted ? 'X' : '♪');
-        this._updatePauseVolume(vol);
-
-        this._pauseSettingsElements.forEach(o => o.setVisible(true));
-    }
-
-    _hidePauseSettings() {
-        this._pauseSettingsElements.forEach(o => o.setVisible(false));
-        this._pauseTitleText.setText('Pausa');
-        this._pauseMainElements.forEach(o => o.setVisible(true));
-    }
-
-    // Creates a styled button for the pause overlay
-    _makePauseBtn(x, y, label, color, cb) {
-        const bg = this.add.rectangle(x, y, 280, 58, color)
-            .setInteractive({ useHandCursor: true })
-            .setDepth(20)
-            .setStrokeStyle(2, 0xd4af37);
-
-        const lbl = this.add.text(x, y, label, {
-            fontSize: '22px', fill: '#fff', fontStyle: 'bold'
-        }).setOrigin(0.5).setDepth(21);
-
-        // Helper to darken the color on hover
-        const darker = (c, amt) => {
-            const r = Math.max(0, ((c >> 16) & 0xff) - amt);
-            const g = Math.max(0, ((c >> 8)  & 0xff) - amt);
-            const b = Math.max(0, ( c        & 0xff) - amt);
-            return (r << 16) | (g << 8) | b;
-        };
-
-        bg.on('pointerover', () => {
-            this.tweens.add({ targets: bg,  scale: 1.05, duration: 100, ease: 'Power1' });
-            bg.setFillStyle(darker(color, 30));
-        });
-        bg.on('pointerout', () => {
-            this.tweens.add({ targets: bg,  scale: 1.0,  duration: 100, ease: 'Power1' });
-            bg.setFillStyle(color);
-        });
-        bg.on('pointerdown', cb);
-
-        return { bg, label: lbl };
-    }
-
-    // Shows the pause overlay
-    _showPauseOverlay() {
-        this._pauseGroup.getChildren().forEach(c => {
-            if (c !== this._countdownText) c.setVisible(true);
-        });
-        // Always reopen on the main pause view, never on the settings sub-view
-        this._pauseTitleText.setText('Pausa');
-        this._pauseSettingsElements.forEach(o => o.setVisible(false));
-    }
-
-    // Hides the pause overlay
-    _hidePauseOverlay() {
-        this._pauseGroup.getChildren().forEach(c => c.setVisible(false));
-    }
-
-    // Toggles between paused and playing
-    togglePause() {
-        if (this._isTransitioning || this._isCountingDown) return;
-
-        if (this._isPaused) {
-            this.startResumeCountdown();
-        } else {
-            this._isPaused = true;
-            this.physics.pause();
-            this.time.paused = true;
-            if (this.gameMusic && this.gameMusic.isPlaying) {
-                this.tweens.add({ targets: this.gameMusic, volume: 0, duration: 300 });
-            }
-            this.pauseBtn.setText('▶');
-            this._showPauseOverlay();
-        }
-    }
-
-    // 3-2-1 countdown before resuming after a pause
-    startResumeCountdown() {
-        if (this._isCountingDown) return;
-        this._isCountingDown = true;
-
-        // Hide everything except the backdrop and the countdown text
-        this._pauseGroup.getChildren().forEach(c => {
-            if (c !== this._countdownText) c.setVisible(false);
-        });
-
-        const dim = this._pauseGroup.getChildren()[0];
-        if (dim) { dim.setAlpha(0.4); dim.setVisible(true); }
-
-        this._countdownText.setVisible(true);
-
-        let count = 3;
-        const showCount = () => {
-            if (count <= 0) {
-                // Countdown finished — resume the game
-                this._countdownText.setVisible(false);
-                if (dim) dim.setAlpha(0.65);
-                this._isCountingDown = false;
-                this._isPaused = false;
-                this.pauseBtn.setText('⏸');
-                this._hidePauseOverlay();
-                this.physics.resume();
-                this.time.paused = false;
-                const vol = parseFloat(localStorage.getItem('tp2_volume')) || 0.5;
-                const muted = localStorage.getItem('tp2_muted') === 'true';
-                if (this.gameMusic) {
-                    this.tweens.add({ targets: this.gameMusic, volume: muted ? 0 : vol, duration: 300 });
-                }
-                return;
-            }
-
-            // Animate each countdown number
-            this._countdownText.setText(String(count));
-            this._countdownText.setScale(1.4);
-            this._countdownText.setAlpha(1);
-
-            this.tweens.add({
-                targets: this._countdownText,
-                scale: 1.0,
-                alpha: 0.7,
-                duration: 850,
-                ease: 'Cubic.easeIn',
-                onComplete: () => {
-                    count--;
-                    showCount();
-                }
-            });
-        };
-
-        showCount();
-    }
-
     // Main game loop (called every frame)
-    update() {
+    update(time, delta) {
 
         // Check slide input (S or Down Arrow)
         if (Phaser.Input.Keyboard.JustDown(this.slideKey) || Phaser.Input.Keyboard.JustDown(this.downKey)) {
@@ -744,7 +512,7 @@ export default class GameScene extends Phaser.Scene {
         }
 
         // Update the parallax background with the current speed
-        this._parallax.update(this.velocidadeJogo);
+        this._parallax.update(this.velocidadeJogo, delta);
 
         // Player input
         const onGround = this.player.body.touching.down || this.player.body.blocked.down;
@@ -766,10 +534,7 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Debug text (state, ground, vertical velocity)
-        //this.debugText.setText(`State: ${this._playerState} | onGround: ${onGround} | velY: ${Math.round(this.player.body.velocity.y)}`);
-
-        // Player animation state machine
+        // Player animation
         if (!this.isSliding) {
             if (onGround) {
                 // On the ground → run animation
@@ -798,9 +563,9 @@ export default class GameScene extends Phaser.Scene {
             }
         }
 
-        // Score
-        this.score += 1;
-        this.scoreText.setText(`${t('score')}: ${Math.floor(this.score / 10)}`);
+        // Score (doubled if Morgan's Hat is active this run)
+        this.score += this._morgansHatActive ? 2 : 1;
+        this.scoreText.setText(`${Math.floor(this.score / 10)}`);
 
         // Move and clean up off-screen obstacles
         this.obstaculos.getChildren().forEach(obstaculo => {
@@ -935,7 +700,7 @@ export default class GameScene extends Phaser.Scene {
         coin.body.setSize(14, 14);
         coin.body.setOffset(1, 1);
 
-        // Floating animation (loops up and down)
+        // Floating animation
         this.tweens.add({
             targets: coin,
             y: y - 18,
@@ -959,13 +724,13 @@ export default class GameScene extends Phaser.Scene {
         this.tweens.killTweensOf(coin);
         coin.destroy();
         this.coinsCollected += 1;
-        this.coinText.setText(`${t('coins')}: ${this.coinsCollected}`);
+        this.coinText.setText(`${this.coinsCollected}`);
         if (this.coinCollectSound) {
             this.coinCollectSound.play();
         }
     }
 
-    // Game Over: checks for Double Life or transitions to the game-over screen
+    // Checks for Double Life or transitions to the game-over screen
     gameOver() {
         if (this._isTransitioning || this._isPaused || this._isCountingDown) return;
 
@@ -976,7 +741,6 @@ export default class GameScene extends Phaser.Scene {
             localStorage.setItem('tp2_doublelife_count', String(this._doubleLifeCount));
             this._doubleLifeCountText.setText(`x${this._doubleLifeCount}`);
 
-            // End deadeye if it's active
             if (this._isDeadeye) {
                 clearTimeout(this._deadeyeTimeout);
                 this._endDeadeye();
@@ -986,14 +750,12 @@ export default class GameScene extends Phaser.Scene {
             return;
         }
 
-        // No Double Life left: pause everything and go to GameOver
         this._isTransitioning = true;
         this.physics.pause();
         if (this.gameMusic && this.gameMusic.isPlaying) {
             this.gameMusic.stop();
         }
 
-        // Clean up deadeye before leaving
         if (this._isDeadeye) {
             clearTimeout(this._deadeyeTimeout);
             this._endDeadeye();
@@ -1004,15 +766,19 @@ export default class GameScene extends Phaser.Scene {
         this.transitionTo('GameOverScene', { score: Math.floor(this.score / 10), coins: this.coinsCollected });
     }
 
-    // Cleanup when the scene is destroyed
     shutdown() {
         if (this._deadeyeTimeout) clearTimeout(this._deadeyeTimeout);
-        // Restore timeScales so other scenes aren't affected
         this.physics.world.timeScale = 1;
+
         this.time.timeScale = 1;
-        // Stop the music when the scene is destroyed
-        if (this.gameMusic && this.gameMusic.isPlaying) {
-            this.gameMusic.stop();
+
+        if (this.gameMusic) {
+            this.gameMusic.destroy();
+            this.gameMusic = null;
+        }
+        if (this.coinCollectSound) {
+            this.coinCollectSound.destroy();
+            this.coinCollectSound = null;
         }
     }
 

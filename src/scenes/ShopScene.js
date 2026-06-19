@@ -14,6 +14,9 @@ export default class ShopScene extends Phaser.Scene {
         if (!this.textures.exists('health_potion')) {
             this.load.image('health_potion', 'assets/images/health_potion.png');
         }
+        if (!this.textures.exists('morgans_hat')) {
+            this.load.image('morgans_hat', 'assets/images/hat.png');
+        }
         this.load.audio('purchaseSound', 'assets/music/purchase_sound.mp3');
     }
 
@@ -67,6 +70,14 @@ export default class ShopScene extends Phaser.Scene {
                 price: 50,
                 sprite: 'health_potion',
                 storageKey: 'tp2_doublelife_count'
+            },
+            {
+                key: 'morgansHat',
+                name: "Morgan's Hat",
+                desc: 'Duplica a pontuação desde o início',
+                price: 50,
+                sprite: 'morgans_hat',
+                storageKey: 'tp2_morganshat_count'
             }
         ];
 
